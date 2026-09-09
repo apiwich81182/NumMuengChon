@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  DRIVER
+  STAFF
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum ExpenseCategory {
+  FUEL            // ค่าน้ำมัน
+  DISPOSAL_FEE    // ค่าทิ้งสิ่งปฏิกูล
+  MAINTENANCE     // ซ่อมบำรุง
+  OTHER           // อื่นๆ
+}
+
+enum AttendanceType {
+  WORK            // เข้างานปกติ
+  SICK_LEAVE      // ลาป่วย
+  BUSINESS_LEAVE  // ลากิจ
+}
+
+model User {
+  id          String       @id @default(uuid())
+  phone       String       @unique
+  password    String
+  name        String
+  role        Role         @default(DRIVER)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
+
+  jobsAsDriver1 Job[]      @relation("Driver1Jobs")
+  jobsAsDriver2 Job[]      @relation("Driver2Jobs")
+  expenses      Expense[]
+  attendances   Attendance[]
+}
+
+model Vehicle {
+  id             String    @id @default(cuid())
+  plateNumber    String    @unique // เช่น กข-1234
+  capacityLiters Int       // ความจุถัง (ลิตร)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  jobs           Job[]
+  expenses       Expense[]
+}
+
+model Job {
+  id              String         @id @default(uuid())
+  userId          String
+  driver2Id       String?
+  vehicleId       String
+  customerName    String
+  customerPhone   String?
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  volumePumped    Int
+  price           Decimal        @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod  @default(CASH)
+  paymentStatus   PaymentStatus  @default(PAID)
+  isReconciled    Boolean        @default(false) // true = แอดมินตรวจรับเงินสดแล้ว
+  reconciledAt    DateTime?      // เวลาที่รับยอดเงิน
+  beforePhotoUrl  String?
+  afterPhotoUrl   String?
+  slipPhotoUrl    String?
+  note            String?
+  completedAt     DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @default(now()) @updatedAt
+
+  user            User           @relation("Driver1Jobs", fields: [userId], references: [id])
+  driver2         User?          @relation("Driver2Jobs", fields: [driver2Id], references: [id])
+  vehicle         Vehicle        @relation(fields: [vehicleId], references: [id])
+}
+
+model Expense {
+  id           String          @id @default(cuid())
+  userId       String          // ผู้บันทึกค่าใช้จ่าย
+  vehicleId    String?         // ระบุรถ (ถ้าเป็นค่าน้ำมัน/ซ่อม)
+  category     ExpenseCategory
+  amount       Decimal         @db.Decimal(10, 2)
+  slipPhotoUrl String?         // รูปใบเสร็จ/สลิป
+  note         String?
+  
+  incurredAt   DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+
+  user         User            @relation(fields: [userId], references: [id])
+  vehicle      Vehicle?        @relation(fields: [vehicleId], references: [id])
+}
+
+model Attendance {
+  id           String         @id @default(cuid())
+  userId       String
+  type         AttendanceType @default(WORK)
+  checkInAt    DateTime?
+  checkOutAt   DateTime?
+  latitude     Float?
+  longitude    Float?
+  selfieUrl    String?
+  note         String?
+  isApproved   Boolean        @default(true) // สำหรับการขอลา
+
+  createdAt    DateTime       @default(now())
+
+  user         User           @relation(fields: [userId], references: [id])
+}
