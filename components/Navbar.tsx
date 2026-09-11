@@ -10,13 +10,12 @@ interface NavbarProps {
     id: string;
     name: string;
     role: string;
-  } | null; // 👈 1. รองรับกรณี user เป็น null
+  } | null;
 }
 
 export default function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
 
-  // 👈 2. ถ้ายังไม่ล็อกอิน หรืออยู่ที่หน้า login ไม่ต้องแสดง Navbar
   if (!user || pathname === "/login") {
     return null;
   }
@@ -105,7 +104,7 @@ export default function Navbar({ user }: NavbarProps) {
         <Link
           href="/attendance"
           className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
-            pathname.startsWith("/attendance")
+            pathname.startsWith("/attendance") || pathname.startsWith("/admin/attendance")
               ? "text-blue-600 font-bold border-blue-600"
               : "text-slate-600 border-transparent hover:text-slate-900"
           }`}
@@ -128,6 +127,18 @@ export default function Navbar({ user }: NavbarProps) {
             >
               <span>📊</span>
               <span>แดชบอร์ด</span>
+            </Link>
+
+            <Link
+              href="/admin/reports"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/reports")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>📈</span>
+              <span>รายงาน</span>
             </Link>
 
             <Link

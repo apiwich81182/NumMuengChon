@@ -92,8 +92,8 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
     const primaryJobs = jobs.filter((j) => j.userId === d.id);
     const secondaryJobs = jobs.filter((j) => j.driver2Id === d.id);
     const totalJobs = primaryJobs.length + secondaryJobs.length;
-    
-  // คำนวณเฉพาะเงินสดที่ "ยังไม่ได้ตรวจรับ" (!j.isReconciled)
+
+    // คำนวณเฉพาะเงินสดที่ "ยังไม่ได้ตรวจรับ" (!j.isReconciled)
     const cashCollected = primaryJobs
       .filter((j) => j.paymentMethod === "CASH" && !j.isReconciled)
       .reduce((sum, j) => sum + Number(j.price), 0);
@@ -114,12 +114,15 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
     };
   });
 
-  // หมวดหมู่ค่าใช้จ่าย
+  // หมวดหมู่ค่าใช้จ่ายภาพรวมทั้งหมด
   const expenseByCategory = {
     FUEL: allExpenses.filter((e) => e.category === "FUEL").reduce((s, e) => s + Number(e.amount), 0),
     DISPOSAL_FEE: allExpenses.filter((e) => e.category === "DISPOSAL_FEE").reduce((s, e) => s + Number(e.amount), 0),
     MAINTENANCE: allExpenses.filter((e) => e.category === "MAINTENANCE").reduce((s, e) => s + Number(e.amount), 0),
-    OTHER: allExpenses.filter((e) => e.category === "OTHER").reduce((s, e) => s + Number(e.amount), 0),
+    SALARY: allExpenses.filter((e) => e.category === "SALARY").reduce((s, e) => s + Number(e.amount), 0),
+    OTHER: allExpenses
+      .filter((e) => !["FUEL", "DISPOSAL_FEE", "MAINTENANCE", "SALARY"].includes(e.category))
+      .reduce((s, e) => s + Number(e.amount), 0),
   };
 
   const monthNames = [
@@ -259,38 +262,106 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         </div>
       </div>
 
-      {/* ผลประกอบการแยกตามคันรถ */}
+      {/* ผลประกอบการและแจกแจงรายจ่ายแยกตามคันรถ */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100">
-          <h2 className="font-bold text-lg text-slate-900">🚛 ผลประกอบการแยกตามคันรถ</h2>
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div>
+            <h2 className="font-bold text-lg text-slate-900">🚛 ผลประกอบการและแจกแจงรายจ่ายแยกตามคันรถ</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              แจกแจงค่าน้ำมัน ค่าทิ้งสิ่งปฏิกูล ค่าซ่อมบำรุง และกำไรส่วนต่างเฉพาะคัน
+            </p>
+          </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-200">
+          <table className="w-full text-left text-xs sm:text-sm">
+            <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">ทะเบียนรถ</th>
-                <th className="py-3 px-4 text-center">เที่ยวงาน</th>
-                <th className="py-3 px-4 text-right">ปริมาณสูบรวม</th>
-                <th className="py-3 px-4 text-right">รายรับ</th>
-                <th className="py-3 px-4 text-right">รายจ่าย</th>
-                <th className="py-3 px-4 text-right">กำไรส่วนต่าง</th>
+                <th className="py-3 px-4 whitespace-nowrap">ทะเบียนรถ</th>
+                <th className="py-3 px-4 text-center whitespace-nowrap">เที่ยวงาน</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">ปริมาณสูบ</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">รายรับ</th>
+                <th className="py-3 px-4 text-right text-amber-700 whitespace-nowrap">⛽ ค่าน้ำมัน</th>
+                <th className="py-3 px-4 text-right text-cyan-700 whitespace-nowrap">🚽 ค่าจุดทิ้ง</th>
+                <th className="py-3 px-4 text-right text-orange-700 whitespace-nowrap">🔧 ค่าซ่อม</th>
+                <th className="py-3 px-4 text-right text-slate-500 whitespace-nowrap">📦 อื่นๆ</th>
+                <th className="py-3 px-4 text-right text-rose-600 font-bold whitespace-nowrap">รวมจ่าย</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">กำไรส่วนต่าง</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {vehicles.map((v) => {
                 const rev = v.jobs.reduce((sum, j) => sum + Number(j.price), 0);
                 const vol = v.jobs.reduce((sum, j) => sum + j.volumePumped, 0);
-                const exp = v.expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-                const profit = rev - exp;
+
+                let fuel = 0;
+                let disposal = 0;
+                let maintenance = 0;
+                let other = 0;
+
+                v.expenses.forEach((e) => {
+                  const amt = Number(e.amount);
+                  if (e.category === "FUEL") fuel += amt;
+                  else if (e.category === "DISPOSAL_FEE") disposal += amt;
+                  else if (e.category === "MAINTENANCE") maintenance += amt;
+                  else other += amt;
+                });
+
+                const totalCarExpense = fuel + disposal + maintenance + other;
+                const profit = rev - totalCarExpense;
 
                 return (
-                  <tr key={v.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-4 font-bold text-slate-800">{v.plateNumber}</td>
-                    <td className="py-3 px-4 text-center">{v.jobs.length} เที่ยว</td>
-                    <td className="py-3 px-4 text-right">{vol.toLocaleString()} ลิตร</td>
-                    <td className="py-3 px-4 text-right font-semibold text-emerald-600">฿{rev.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-right text-rose-500 font-medium">฿{exp.toLocaleString()}</td>
-                    <td className={`py-3 px-4 text-right font-bold ${profit >= 0 ? "text-blue-600" : "text-red-500"}`}>
+                  <tr key={v.id} className="hover:bg-slate-50 transition">
+                    {/* 1. ทะเบียนรถ */}
+                    <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">
+                      {v.plateNumber}
+                    </td>
+
+                    {/* 2. เที่ยวงาน */}
+                    <td className="py-3 px-4 text-center whitespace-nowrap text-slate-600">
+                      {v.jobs.length} เที่ยว
+                    </td>
+
+                    {/* 3. ปริมาณสูบ */}
+                    <td className="py-3 px-4 text-right whitespace-nowrap text-slate-600">
+                      {vol.toLocaleString()} ลิตร
+                    </td>
+
+                    {/* 4. รายรับ */}
+                    <td className="py-3 px-4 text-right font-semibold text-emerald-600 whitespace-nowrap">
+                      ฿{rev.toLocaleString()}
+                    </td>
+
+                    {/* 5. ค่าน้ำมัน */}
+                    <td className="py-3 px-4 text-right whitespace-nowrap text-slate-700">
+                      {fuel > 0 ? `฿${fuel.toLocaleString()}` : "-"}
+                    </td>
+
+                    {/* 6. ค่าจุดทิ้ง */}
+                    <td className="py-3 px-4 text-right whitespace-nowrap text-slate-700">
+                      {disposal > 0 ? `฿${disposal.toLocaleString()}` : "-"}
+                    </td>
+
+                    {/* 7. ค่าซ่อม */}
+                    <td className="py-3 px-4 text-right whitespace-nowrap text-slate-700">
+                      {maintenance > 0 ? `฿${maintenance.toLocaleString()}` : "-"}
+                    </td>
+
+                    {/* 8. อื่นๆ */}
+                    <td className="py-3 px-4 text-right whitespace-nowrap text-slate-500">
+                      {other > 0 ? `฿${other.toLocaleString()}` : "-"}
+                    </td>
+
+                    {/* 9. รวมจ่าย */}
+                    <td className="py-3 px-4 text-right font-bold text-rose-500 whitespace-nowrap">
+                      ฿{totalCarExpense.toLocaleString()}
+                    </td>
+
+                    {/* 10. กำไรส่วนต่าง */}
+                    <td
+                      className={`py-3 px-4 text-right font-bold whitespace-nowrap ${
+                        profit >= 0 ? "text-blue-600" : "text-rose-600"
+                      }`}
+                    >
                       ฿{profit.toLocaleString()}
                     </td>
                   </tr>
@@ -437,12 +508,15 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
             <p className="text-lg font-bold text-slate-800 mt-1">฿{expenseByCategory.MAINTENANCE.toLocaleString()}</p>
           </div>
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+            <p className="text-xs text-slate-500">💼 ค่าแรง</p>
+            <p className="text-lg font-bold text-slate-800 mt-1">฿{expenseByCategory.SALARY.toLocaleString()}</p>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
             <p className="text-xs text-slate-500">📦 อื่นๆ</p>
             <p className="text-lg font-bold text-slate-800 mt-1">฿{expenseByCategory.OTHER.toLocaleString()}</p>
           </div>
         </div>
       </div>
-      
     </div>
   );
 }

@@ -241,7 +241,7 @@ export default async function JobListPage({ searchParams }: PageProps) {
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-600">
+                  <p className="text-[13px] text-slate-600">
                     👷 พนักงาน 1: <span className="font-semibold text-slate-800">{job.user.name}</span>
                     {job.driver2 && (
                       <> • ผู้ช่วย: <span className="font-semibold text-slate-800">{job.driver2.name}</span></>
@@ -251,7 +251,7 @@ export default async function JobListPage({ searchParams }: PageProps) {
                     )}
                   </p>
 
-                  <p className="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+                  <p className="text-[13px] text-slate-600 flex items-center gap-2 flex-wrap">
                     <span>{new Date(job.createdAt).toLocaleString("th-TH")}</span>
                     {job.latitude && job.longitude && (
                       <a

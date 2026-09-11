@@ -282,7 +282,6 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             type="file"
             name="beforePhoto"
             accept="image/*"
-            capture="environment"
             className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
           />
         </div>
@@ -292,7 +291,6 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             type="file"
             name="afterPhoto"
             accept="image/*"
-            capture="environment"
             className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
           />
         </div>

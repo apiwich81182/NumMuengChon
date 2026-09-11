@@ -27,6 +27,8 @@ enum PaymentStatus {
 enum ExpenseCategory {
   FUEL            // ค่าน้ำมัน
   DISPOSAL_FEE    // ค่าทิ้งสิ่งปฏิกูล
+  SALARY       // เพิ่ม
+  MARKETING    // เพิ่ม
   MAINTENANCE     // ซ่อมบำรุง
   OTHER           // อื่นๆ
 }
@@ -100,10 +102,12 @@ model Expense {
   amount       Decimal         @db.Decimal(10, 2)
   slipPhotoUrl String?         // รูปใบเสร็จ/สลิป
   note         String?
-  
-  incurredAt   DateTime        @default(now())
-  createdAt    DateTime        @default(now())
+  isAdminOnly Boolean  @default(false) // true = รายจ่ายลับเฉพาะแอดมิน
 
+  incurredAt  DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  createdAt   DateTime @default(now())
+  
   user         User            @relation(fields: [userId], references: [id])
   vehicle      Vehicle?        @relation(fields: [vehicleId], references: [id])
 }
