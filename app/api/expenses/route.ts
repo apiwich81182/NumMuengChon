@@ -1,45 +1,64 @@
-// app/api/expenses/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { sendLineExpenseAlert } from "@/lib/line";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // 1. ตรวจสอบสิทธิ์ผู้ใช้
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 2. รับข้อมูลจาก Body
     const body = await req.json();
-    // ใน app/api/expenses/route.ts
-    const { amount, category, vehicleId, note, slipPhotoUrl, isAdminOnly } = body;
+    const { amount, category, vehicleId, note, slipUrl, receiptUrl, slipPhotoUrl } = body;
 
-    // ตรวจสอบความปลอดภัย: อนุญาตให้ตั้งเป็น true ได้เฉพาะผู้ใช้ที่เป็น ADMIN
-    const secureIsAdminOnly = user.role === "ADMIN" ? Boolean(isAdminOnly) : false;
+    if (!amount || !category) {
+      return NextResponse.json(
+        { error: "กรุณาระบุจำนวนเงินและหมวดหมู่รายจ่าย" },
+        { status: 400 }
+      );
+    }
 
+    const finalSlipUrl = slipUrl || receiptUrl || slipPhotoUrl || null;
+
+    // 3. บันทึกข้อมูลลงฐานข้อมูล
     const newExpense = await prisma.expense.create({
-    data: {
+      data: {
         amount: Number(amount),
-        category: category as any,
-        note: note || undefined,
-        slipPhotoUrl: slipPhotoUrl || undefined,
-        isAdminOnly: secureIsAdminOnly,
-        ...(vehicleId ? { vehicle: { connect: { id: vehicleId } } } : {}),
-        user: {
-        connect: { id: user.id },
-        },
-    },
+        category,
+        vehicleId: vehicleId || null,
+        note: note || null,
+        userId: currentUser.id,
+      },
+      include: {
+        user: true,
+        vehicle: true,
+      },
     });
 
-    revalidatePath("/expenses");
-    revalidatePath("/admin/reports");
+    // 4. ส่งแจ้งเตือนเข้า LINE ทันที
+    try {
+      await sendLineExpenseAlert({
+        category: newExpense.category,
+        amount: Number(newExpense.amount),
+        userName: newExpense.user?.name || currentUser.name || "ไม่ระบุชื่อ",
+        plateNumber: newExpense.vehicle?.plateNumber || null,
+        note: newExpense.note,
+        slipUrl: finalSlipUrl,
+        createdAt: newExpense.createdAt,
+      });
+    } catch (lineErr) {
+      console.error("ส่ง LINE แจ้งเตือนรายจ่ายไม่สำเร็จ:", lineErr);
+    }
 
-    return NextResponse.json({ success: true, data: newExpense }, { status: 201 });
+    return NextResponse.json({ success: true, data: newExpense });
   } catch (error: any) {
-    console.error("Expense creation error:", error);
+    console.error("Error creating expense:", error);
     return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
+      { error: error.message || "เกิดข้อผิดพลาดในการบันทึกรายจ่าย" },
       { status: 500 }
     );
   }

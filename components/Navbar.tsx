@@ -29,7 +29,7 @@ export default function Navbar({ user }: NavbarProps) {
         <div className="flex items-center gap-2">
           <span className="text-xl">🚛</span>
           <span className="font-bold text-slate-900 tracking-tight text-base sm:text-lg">
-            NumMuengChon
+            หนุ่มเมืองชน
           </span>
           <span
             className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
@@ -99,18 +99,6 @@ export default function Navbar({ user }: NavbarProps) {
         >
           <span>⛽</span>
           <span>รายจ่าย</span>
-        </Link>
-
-        <Link
-          href="/attendance"
-          className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
-            pathname.startsWith("/attendance") || pathname.startsWith("/admin/attendance")
-              ? "text-blue-600 font-bold border-blue-600"
-              : "text-slate-600 border-transparent hover:text-slate-900"
-          }`}
-        >
-          <span>⏰</span>
-          <span>ลงเวลา</span>
         </Link>
 
         {isAdmin && (

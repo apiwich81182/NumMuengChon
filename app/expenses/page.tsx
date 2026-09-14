@@ -7,150 +7,183 @@ export const revalidate = 0;
 
 interface PageProps {
   searchParams: Promise<{
-    page?: string;
+    period?: string; // "today" | "this_month" | "this_year" | "all" | "custom"
     vehicleId?: string;
     userId?: string;
     category?: string;
-    sort?: string;
+    sort?: string; // "desc" | "asc"
     startDate?: string;
     endDate?: string;
+    page?: string;
   }>;
 }
 
-const PAGE_SIZE = 15;
-
-const CATEGORY_LABELS: Record<string, string> = {
+const CATEGORY_NAMES: Record<string, string> = {
   FUEL: "ค่าน้ำมัน",
-  MAINTENANCE: "ค่าซ่อมบำรุง",
   DISPOSAL_FEE: "ค่าจุดทิ้งของเสีย",
+  MAINTENANCE: "ค่าซ่อมบำรุง",
   SALARY: "ค่าแรง / เงินเดือน",
   OTHER: "อื่นๆ",
 };
 
 export default async function ExpensesPage({ searchParams }: PageProps) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login");
+  if (!currentUser) {
+    redirect("/login");
+  }
 
-  const isAdmin = currentUser.role === "ADMIN";
   const params = await searchParams;
+  const now = new Date();
+  const period = params.period || (!params.startDate && !params.endDate ? "all" : "custom");
+  const selectedVehicleId = params.vehicleId || "";
+  const selectedUserId = params.userId || "";
+  const selectedCategory = params.category || "ALL";
+  const selectedSort = params.sort || "desc";
+  const startDateParam = params.startDate || "";
+  const endDateParam = params.endDate || "";
+  const currentPage = Math.max(1, Number(params.page) || 1);
+  const pageSize = 10;
 
-  const page = Math.max(1, Number(params.page) || 1);
-  const skip = (page - 1) * PAGE_SIZE;
+  // 1. คำนวณช่วงเวลา Start/End (Smart Auto-Fill: ถ้าเลือกวันเดียว ให้จบในวันนั้นทันที)
+  let start: Date | null = null;
+  let end: Date | null = null;
 
-  const vehicleId = params.vehicleId || "";
-  // ถ้าเป็น ADMIN ใช้ค่าจาก filter ได้ แต่ถ้าเป็นพนักงานทั่วไป บังคับให้เป็น ID ของตนเองเสมอ
-  const userId = isAdmin ? (params.userId || "") : currentUser.id;
-  const category = params.category || "";
-  const sort = params.sort || "desc";
-  const startDate = params.startDate || "";
-  const endDate = params.endDate || "";
-
-  // เงื่อนไข Filter ของ Prisma
-  const where: any = {};
-
-  if (!isAdmin) {
-    where.isAdminOnly = false;
-    where.userId = currentUser.id; // 🔒 ล็อกให้ดูได้เฉพาะรายการของตัวเอง
-  } else {
-    if (userId) where.userId = userId;
+  if (startDateParam || endDateParam) {
+    const s = startDateParam || endDateParam;
+    const e = endDateParam || startDateParam;
+    start = new Date(`${s}T00:00:00.000`);
+    end = new Date(`${e}T23:59:59.999`);
+  } else if (period === "today") {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  } else if (period === "this_month") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  } else if (period === "this_year") {
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
   }
 
-  if (vehicleId) where.vehicleId = vehicleId;
-  if (category) where.category = category;
+  // 2. สร้างเงื่อนไข Where
+  const whereCondition: any = {};
 
-  if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.gte = new Date(`${startDate}T00:00:00`);
-    if (endDate) where.createdAt.lte = new Date(`${endDate}T23:59:59`);
+  if (currentUser.role !== "ADMIN") {
+    whereCondition.userId = currentUser.id;
+  } else if (selectedUserId) {
+    // ถ้าเป็น ADMIN และมีการเลือกกรองตามพนักงาน
+    whereCondition.userId = selectedUserId;
   }
 
-  const [totalCount, expenses, vehicles, users, aggregateTotal] = await Promise.all([
-    prisma.expense.count({ where }),
-    prisma.expense.findMany({
-      where,
-      include: {
-        user: true,
-        vehicle: true,
-      },
-      orderBy: { createdAt: sort === "asc" ? "asc" : "desc" },
-      skip,
-      take: PAGE_SIZE,
-    }),
+  if (start || end) {
+    const dateRange: any = {};
+    if (start) dateRange.gte = start;
+    if (end) dateRange.lte = end;
+    whereCondition.createdAt = dateRange;
+  }
+
+  if (selectedVehicleId) {
+    whereCondition.vehicleId = selectedVehicleId;
+  }
+
+  if (selectedUserId) {
+    whereCondition.userId = selectedUserId;
+  }
+
+  if (selectedCategory !== "ALL") {
+    whereCondition.category = selectedCategory;
+  }
+
+  // 3. ดึงข้อมูลรถ พนักงาน ผลรวมยอดเงิน และรายการรายจ่าย
+  const [vehicles, users, totalCount, allFilteredExpenses, expenses] = await Promise.all([
     prisma.vehicle.findMany({
       where: { isActive: true },
       orderBy: { plateNumber: "asc" },
     }),
-    // ดึงรายชื่อพนักงานเฉพาะเมื่อเป็น ADMIN
-    isAdmin
-      ? prisma.user.findMany({
-          orderBy: { name: "asc" },
-          select: { id: true, name: true },
-        })
-      : Promise.resolve([]),
-    prisma.expense.aggregate({
-      where,
-      _sum: { amount: true },
+    prisma.user.findMany({
+      where: { role: { in: ["DRIVER", "ADMIN"] } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.expense.count({ where: whereCondition }),
+    prisma.expense.findMany({
+      where: whereCondition,
+      select: { amount: true },
+    }),
+    prisma.expense.findMany({
+      where: whereCondition,
+      include: {
+        user: true,
+        vehicle: true,
+      },
+      orderBy: {
+        createdAt: selectedSort === "asc" ? "asc" : "desc",
+      },
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
     }),
   ]);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
-  const currentTotalAmount = Number(aggregateTotal._sum.amount || 0);
+  const totalExpenseSum = allFilteredExpenses.reduce(
+    (sum, e) => sum + Number(e.amount || 0),
+    0
+  );
 
-  // Helper สร้าง Query URL สำหรับ Pagination
-  const getPageLink = (targetPage: number) => {
-    const sp = new URLSearchParams();
-    if (vehicleId) sp.set("vehicleId", vehicleId);
-    if (isAdmin && userId) sp.set("userId", userId);
-    if (category) sp.set("category", category);
-    if (sort) sp.set("sort", sort);
-    if (startDate) sp.set("startDate", startDate);
-    if (endDate) sp.set("endDate", endDate);
-    sp.set("page", String(targetPage));
-    return `/expenses?${sp.toString()}`;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalCount);
+
+  const getPageUrl = (pageNumber: number) => {
+    const p = new URLSearchParams();
+    if (period) p.set("period", period);
+    if (selectedVehicleId) p.set("vehicleId", selectedVehicleId);
+    if (selectedUserId) p.set("userId", selectedUserId);
+    if (selectedCategory !== "ALL") p.set("category", selectedCategory);
+    if (selectedSort !== "desc") p.set("sort", selectedSort);
+    if (startDateParam) p.set("startDate", startDateParam);
+    if (endDateParam) p.set("endDate", endDateParam);
+    p.set("page", String(pageNumber));
+    return `/expenses?${p.toString()}`;
   };
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* หัวกระดาษและปุ่มบันทึก */}
+        {/* ส่วนหัว */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              📕 รายการรายจ่าย
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              {isAdmin ? (
-                <>
-                  พบทั้งหมด {totalCount.toLocaleString()} รายการ (ภาพรวมบริษัท) • รวม:{" "}
-                  <span className="font-bold text-rose-600">฿{currentTotalAmount.toLocaleString()}</span>
-                </>
-              ) : (
-                <>
-                  พบทั้งหมด {totalCount.toLocaleString()} รายการ (เฉพาะรายการของคุณ) • รวม:{" "}
-                  <span className="font-bold text-rose-600">฿{currentTotalAmount.toLocaleString()}</span>
-                </>
-              )}
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            📕 รายการรายจ่าย
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            พบทั้งหมด {totalCount} รายการ {currentUser.role === "ADMIN" ? "(ภาพรวมบริษัท)" : "(รายการของคุณ)"}
+            {currentUser.role === "ADMIN" && (
+              <>
+                {" "}• รวม:{" "}
+                <strong className="text-rose-600 font-bold">
+                  ฿{totalExpenseSum.toLocaleString()}
+                </strong>
+              </>
+            )}
+          </p>
+        </div>
           <Link
             href="/expenses/new"
-            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm"
           >
             + บันทึกรายจ่ายใหม่
           </Link>
         </div>
 
-        {/* กล่องตัวกรอง */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-          <form method="GET" className="space-y-4">
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4 text-xs`}>
-              {/* คันรถ */}
-              <div>
-                <label className="block text-slate-600 font-semibold mb-1.5">คันรถ</label>
+        {/* แถบตัวกรอง */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+          <form method="GET" action="/expenses" className="space-y-4 text-xs">
+            {/* แถวบน: คันรถ / พนักงาน / หมวดหมู่ / เรียงลำดับ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium">คันรถ</label>
                 <select
                   name="vehicleId"
-                  defaultValue={vehicleId}
-                  className="w-full p-2 border border-slate-200 rounded-lg bg-slate-50/50 hover:bg-slate-50 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white"
+                  defaultValue={selectedVehicleId}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="">ทั้งหมด</option>
                   {vehicles.map((v) => (
@@ -161,14 +194,13 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                 </select>
               </div>
 
-              {/* พนักงาน (แสดงและเลือกได้เฉพาะ ADMIN) */}
-              {isAdmin && (
-                <div>
-                  <label className="block text-slate-600 font-semibold mb-1.5">พนักงาน</label>
+              {currentUser.role === "ADMIN" && (
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium">พนักงาน</label>
                   <select
                     name="userId"
-                    defaultValue={userId}
-                    className="w-full p-2 border border-slate-200 rounded-lg bg-slate-50/50 hover:bg-slate-50 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white"
+                    defaultValue={selectedUserId}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                   >
                     <option value="">ทั้งหมด</option>
                     {users.map((u) => (
@@ -180,33 +212,31 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                 </div>
               )}
 
-              {/* หมวดหมู่รายจ่าย */}
-              <div>
-                <label className="block text-slate-600 font-semibold mb-1.5">หมวดหมู่</label>
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium">หมวดหมู่</label>
                 <select
                   name="category"
-                  defaultValue={category}
-                  className="w-full p-2 border border-slate-200 rounded-lg bg-slate-50/50 hover:bg-slate-50 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white"
+                  defaultValue={selectedCategory}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
-                  <option value="">ทั้งหมด</option>
-                  {Object.entries(CATEGORY_LABELS).map(([k, label]) => {
-                    if (!isAdmin && k === "SALARY") return null;
-                    return (
-                      <option key={k} value={k}>
-                        {label}
-                      </option>
-                    );
-                  })}
+                  <option value="ALL">ทั้งหมด</option>
+                  <option value="FUEL">ค่าน้ำมัน</option>
+                  <option value="DISPOSAL_FEE">ค่าจุดทิ้งของเสีย</option>
+                  <option value="MAINTENANCE">ค่าซ่อมบำรุง</option>
+                  {/* แสดงเฉพาะแอดมินเท่านั้น */}
+                  {currentUser.role === "ADMIN" && (
+                    <option value="SALARY">ค่าแรง / เงินเดือน</option>
+                  )}
+                  <option value="OTHER">อื่นๆ</option>
                 </select>
               </div>
 
-              {/* เรียงลำดับ */}
-              <div>
-                <label className="block text-slate-600 font-semibold mb-1.5">เรียงลำดับ</label>
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium">เรียงลำดับ</label>
                 <select
                   name="sort"
-                  defaultValue={sort}
-                  className="w-full p-2 border border-slate-200 rounded-lg bg-slate-50/50 hover:bg-slate-50 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white"
+                  defaultValue={selectedSort}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="desc">ล่าสุด → เก่าสุด</option>
                   <option value="asc">เก่าสุด → ล่าสุด</option>
@@ -214,35 +244,66 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* แถวล่าง: ช่วงวันที่ + ปุ่มล้างตัวกรองและปุ่มค้นหา */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
-              <div className="flex items-center gap-2 text-xs flex-wrap">
-                <span className="text-slate-600 font-semibold">ช่วงวันที่:</span>
-                <input
-                  type="date"
-                  name="startDate"
-                  defaultValue={startDate}
-                  className="p-1.5 px-2.5 border border-slate-200 rounded-lg bg-slate-50/50 text-slate-700 outline-none text-xs focus:border-blue-500 focus:bg-white"
-                />
-                <span className="text-slate-400">ถึง</span>
-                <input
-                  type="date"
-                  name="endDate"
-                  defaultValue={endDate}
-                  className="p-1.5 px-2.5 border border-slate-200 rounded-lg bg-slate-50/50 text-slate-700 outline-none text-xs focus:border-blue-500 focus:bg-white"
-                />
+            {/* แถวล่าง: ปุ่มลัดช่วงเวลา + ระบุวันที่ + ปุ่มล้าง/ค้นหา */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-slate-500 font-medium">ช่วงเวลา:</span>
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  {[
+                    { id: "today", label: "วันนี้" },
+                    { id: "this_month", label: "เดือนนี้" },
+                    { id: "this_year", label: "ปีนี้" },
+                    { id: "all", label: "ทั้งหมด" },
+                  ].map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/expenses?period=${item.id}${
+                        selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""
+                      }${selectedUserId ? `&userId=${selectedUserId}` : ""}${
+                        selectedCategory !== "ALL" ? `&category=${selectedCategory}` : ""
+                      }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+                        period === item.id && !startDateParam && !endDateParam
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+
+                <input type="hidden" name="period" value={period} />
+
+                {/* ระบุวันที่ (Smart Auto-Fill) */}
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <span className="text-xs">หรือระบุวันที่:</span>
+                  <input
+                    type="date"
+                    name="startDate"
+                    defaultValue={startDateParam}
+                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white"
+                  />
+                  <span>ถึง</span>
+                  <input
+                    type="date"
+                    name="endDate"
+                    defaultValue={endDateParam}
+                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex items-center gap-2 self-end lg:self-auto">
                 <Link
                   href="/expenses"
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition"
                 >
                   ล้างตัวกรอง
                 </Link>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#0c1322] hover:bg-black text-white text-xs font-semibold rounded-lg transition shadow-sm"
+                  className="px-5 py-2 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-xl transition shadow-sm cursor-pointer"
                 >
                   ค้นหา
                 </button>
@@ -251,77 +312,77 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
           </form>
         </div>
 
-        {/* ตารางแสดงผลรายการ */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        {/* ตารางแสดงรายการรายจ่าย */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50/75 text-slate-500 font-semibold border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">วัน-เวลา</th>
-                  <th className="py-3 px-4">หมวดหมู่</th>
-                  <th className="py-3 px-4">รถ / ผู้บันทึก</th>
-                  <th className="py-3 px-4">รายละเอียด</th>
-                  <th className="py-3 px-4 text-center">สลิป</th>
-                  <th className="py-3 px-4 text-right">ยอดเงิน</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">วัน-เวลา</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">หมวดหมู่</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">รถ / ผู้บันทึก</th>
+                  <th className="py-3.5 px-4">รายละเอียด</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">สลิป</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap text-rose-600">ยอดเงิน</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 font-medium">
                 {expenses.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                      ไม่พบรายการรายจ่ายตามเงื่อนไขที่ค้นหา
+                    <td colSpan={6} className="py-12 text-center text-slate-400 text-sm">
+                      ไม่พบรายการรายจ่ายตามเงื่อนไขที่เลือก
                     </td>
                   </tr>
                 ) : (
-                  expenses.map((exp) => {
-                    const dateObj = new Date(exp.createdAt);
-                    const dateText = dateObj.toLocaleDateString("th-TH", {
+                  expenses.map((exp: any) => {
+                    const d = new Date(exp.createdAt);
+                    const dateText = d.toLocaleDateString("th-TH", {
                       day: "numeric",
                       month: "short",
+                      year: "2-digit",
                     });
-                    const timeText = dateObj.toLocaleTimeString("th-TH", {
+                    const timeText = d.toLocaleTimeString("th-TH", {
                       hour: "2-digit",
                       minute: "2-digit",
+                      second: "2-digit",
                     });
 
+                    const slipUrl = exp.slipUrl || exp.receiptUrl || exp.imageUrl;
+
                     return (
-                      <tr key={exp.id} className="hover:bg-slate-50/60 transition">
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="font-semibold text-slate-800">{dateText}</div>
-                          <div className="text-[13px] text-slate-600 font-mono">{timeText} น.</div>
+                      <tr key={exp.id} className="hover:bg-slate-50 transition">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="font-bold text-slate-800">{dateText}</div>
+                          <div className="text-[11px] text-slate-400">{timeText} น.</div>
                         </td>
-
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-slate-800">
-                              {CATEGORY_LABELS[exp.category] || exp.category}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="font-semibold text-slate-800">
+                            {CATEGORY_NAMES[exp.category] || exp.category}
+                          </span>
+                          {exp.user?.role === "ADMIN" && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] rounded border border-amber-200">
+                              🔒 แอดมิน
                             </span>
-                            {exp.isAdminOnly && (
-                              <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">
-                                🔒 แอดมิน
-                              </span>
-                            )}
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="font-semibold text-slate-800">
+                            {exp.vehicle?.plateNumber || "-"}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {exp.user?.name || "-"}
                           </div>
                         </td>
-
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="font-medium text-slate-900">
-                            {exp.vehicle ? exp.vehicle.plateNumber : "-"}
-                          </div>
-                          <div className="text-[13px] text-slate-900">{exp.user.name}</div>
+                        <td className="py-3.5 px-4 text-slate-600">
+                          {exp.note || exp.description || "-"}
                         </td>
-
-                        <td className="py-3 px-4 max-w-[220px] truncate text-slate-600">
-                          {exp.note || "-"}
-                        </td>
-
-                        <td className="py-3 px-4 text-center">
-                          {exp.slipPhotoUrl ? (
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {slipUrl ? (
                             <a
-                              href={exp.slipPhotoUrl}
+                              href={slipUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-block text-xs text-blue-600 hover:underline font-semibold"
+                              className="px-2.5 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
                             >
                               ดูสลิป
                             </a>
@@ -329,9 +390,8 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                             <span className="text-slate-300">-</span>
                           )}
                         </td>
-
-                        <td className="py-3 px-4 text-right font-bold text-rose-600 whitespace-nowrap">
-                          ฿{Number(exp.amount).toLocaleString()}
+                        <td className="py-3.5 px-4 text-right font-bold text-rose-600 font-mono text-sm sm:text-base whitespace-nowrap">
+                          ฿{Number(exp.amount || 0).toLocaleString()}
                         </td>
                       </tr>
                     );
@@ -341,30 +401,44 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
             </table>
           </div>
 
-          {/* ส่วนแบ่งหน้า (Pagination) */}
-          {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <Link
-                href={getPageLink(page - 1)}
-                className={`px-3 py-1.5 rounded-lg border border-slate-200 font-semibold ${
-                  page <= 1 ? "pointer-events-none opacity-40 bg-slate-50" : "hover:bg-slate-50 text-slate-700"
-                }`}
-              >
-                ← ก่อนหน้า
-              </Link>
-              <span className="text-slate-500">
-                หน้า {page} จาก {totalPages}
-              </span>
-              <Link
-                href={getPageLink(page + 1)}
-                className={`px-3 py-1.5 rounded-lg border border-slate-200 font-semibold ${
-                  page >= totalPages ? "pointer-events-none opacity-40 bg-slate-50" : "hover:bg-slate-50 text-slate-700"
-                }`}
-              >
-                ถัดไป →
-              </Link>
+          {/* Pagination */}
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+            <div>
+              แสดง {totalCount === 0 ? 0 : startIndex + 1} - {endIndex} จาก {totalCount} รายการ
             </div>
-          )}
+
+            <div className="flex items-center gap-2">
+              {currentPage > 1 ? (
+                <Link
+                  href={getPageUrl(currentPage - 1)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium"
+                >
+                  ◀ ก่อนหน้า
+                </Link>
+              ) : (
+                <span className="px-3 py-1.5 bg-slate-50 text-slate-300 rounded-lg cursor-not-allowed">
+                  ◀ ก่อนหน้า
+                </span>
+              )}
+
+              <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 shadow-sm">
+                หน้า {currentPage} / {totalPages}
+              </span>
+
+              {currentPage < totalPages ? (
+                <Link
+                  href={getPageUrl(currentPage + 1)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium"
+                >
+                  ถัดไป ▶
+                </Link>
+              ) : (
+                <span className="px-3 py-1.5 bg-slate-50 text-slate-300 rounded-lg cursor-not-allowed">
+                  ถัดไป ▶
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </main>

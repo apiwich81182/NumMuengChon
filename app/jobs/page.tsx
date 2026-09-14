@@ -1,106 +1,147 @@
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import ReconcileButton from "./ReconcileButton";
+import Link from "next/link";
+import { toggleJobReconciled } from "./actions";
 
 export const revalidate = 0;
 
 interface PageProps {
   searchParams: Promise<{
+    period?: string; // "today" | "this_month" | "this_year" | "all" | "custom"
     vehicleId?: string;
     userId?: string;
     paymentMethod?: string;
-    sortOrder?: string;
+    sort?: string; // "desc" | "asc"
     startDate?: string;
     endDate?: string;
     page?: string;
   }>;
 }
 
-const PAGE_SIZE = 15;
-
-export default async function JobListPage({ searchParams }: PageProps) {
+export default async function JobsPage({ searchParams }: PageProps) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) redirect("/login");
+  if (!currentUser) {
+    redirect("/login");
+  }
 
   const params = await searchParams;
-  const {
-    vehicleId,
-    userId,
-    paymentMethod,
-    sortOrder = "desc",
-    startDate,
-    endDate,
-    page: rawPage,
-  } = params;
+  const now = new Date();
+  const period = params.period || (!params.startDate && !params.endDate ? "all" : "custom");
+  const selectedVehicleId = params.vehicleId || "";
+  const selectedUserId = params.userId || "";
+  const selectedPaymentMethod = params.paymentMethod || "ALL";
+  const selectedSort = params.sort || "desc";
+  const startDateParam = params.startDate || "";
+  const endDateParam = params.endDate || "";
+  const currentPage = Math.max(1, Number(params.page) || 1);
+  const pageSize = 10;
 
-  const isAdmin = currentUser.role === "ADMIN";
-  const currentPage = Math.max(1, Number(rawPage) || 1);
-  const skip = (currentPage - 1) * PAGE_SIZE;
+  // 1. คำนวณช่วงเวลา Start/End (ถ้ากรอกมาแค่วันเดียว ให้ใช้วันเดียวกันเป็นวันสิ้นสุดทันที)
+  let start: Date | null = null;
+  let end: Date | null = null;
 
-  // 1. เงื่อนไขค้นหาตามบทบาทและตัวกรอง
-  const where: any = {};
+  if (startDateParam || endDateParam) {
+    const s = startDateParam || endDateParam;
+    const e = endDateParam || startDateParam;
+    start = new Date(`${s}T00:00:00.000`);
+    end = new Date(`${e}T23:59:59.999`);
+  } else if (period === "today") {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  } else if (period === "this_month") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  } else if (period === "this_year") {
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  }
 
-  if (!isAdmin) {
-    where.OR = [
+  // 2. สร้างเงื่อนไข Where
+  const whereCondition: any = {};
+
+  if (currentUser.role !== "ADMIN") {
+    whereCondition.OR = [
       { userId: currentUser.id },
       { driver2Id: currentUser.id },
     ];
-  } else {
-    if (userId) {
-      where.OR = [
-        { userId: userId },
-        { driver2Id: userId },
-      ];
-    }
+  } else if (selectedUserId) {
+    // ถ้าเป็น ADMIN และมีการเลือกกรองตามพนักงาน
+    whereCondition.OR = [
+      { userId: selectedUserId },
+      { driver2Id: selectedUserId },
+    ];
   }
 
-  if (vehicleId) where.vehicleId = vehicleId;
-  if (paymentMethod) where.paymentMethod = paymentMethod;
-
-  if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.gte = new Date(`${startDate}T00:00:00`);
-    if (endDate) where.createdAt.lte = new Date(`${endDate}T23:59:59`);
+  if (start || end) {
+    const dateRange: any = {};
+    if (start) dateRange.gte = start;
+    if (end) dateRange.lte = end;
+    whereCondition.completedAt = dateRange;
   }
 
-  // 2. Query ดาต้าเบสพร้อมกัน
-  const [totalCount, jobs, vehicles, staffList] = await Promise.all([
-    prisma.job.count({ where }),
+  if (selectedVehicleId) {
+    whereCondition.vehicleId = selectedVehicleId;
+  }
+
+  if (selectedUserId) {
+    whereCondition.OR = [
+      { userId: selectedUserId },
+      { driver2Id: selectedUserId },
+    ];
+  }
+
+  if (selectedPaymentMethod !== "ALL") {
+    whereCondition.paymentMethod = selectedPaymentMethod;
+  }
+
+  // 3. ดึงข้อมูลรถ พนักงาน และรายการงาน
+  const [vehicles, users, totalJobs, rawJobs] = await Promise.all([
+    prisma.vehicle.findMany({
+      where: { isActive: true },
+      orderBy: { plateNumber: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { role: { in: ["DRIVER", "ADMIN"] } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.job.count({ where: whereCondition }),
     prisma.job.findMany({
-      where,
+      where: whereCondition,
       include: {
         user: true,
         driver2: true,
         vehicle: true,
       },
-      orderBy: { createdAt: sortOrder === "asc" ? "asc" : "desc" },
-      skip,
-      take: PAGE_SIZE,
+      orderBy: {
+        completedAt: selectedSort === "asc" ? "asc" : "desc",
+      },
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
     }),
-    prisma.vehicle.findMany({ where: { isActive: true }, orderBy: { plateNumber: "asc" } }),
-    isAdmin ? prisma.user.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const jobs = rawJobs as any[];
+  const totalPages = Math.max(1, Math.ceil(totalJobs / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalJobs);
 
-  // Helper สร้าง Query URL ส่งต่อไปยังปุ่มแบ่งหน้า
-  const createPageUrl = (pageNumber: number) => {
+  const getPageUrl = (pageNumber: number) => {
     const p = new URLSearchParams();
-    if (vehicleId) p.set("vehicleId", vehicleId);
-    if (userId) p.set("userId", userId);
-    if (paymentMethod) p.set("paymentMethod", paymentMethod);
-    if (sortOrder) p.set("sortOrder", sortOrder);
-    if (startDate) p.set("startDate", startDate);
-    if (endDate) p.set("endDate", endDate);
-    p.set("page", pageNumber.toString());
+    if (period) p.set("period", period);
+    if (selectedVehicleId) p.set("vehicleId", selectedVehicleId);
+    if (selectedUserId) p.set("userId", selectedUserId);
+    if (selectedPaymentMethod !== "ALL") p.set("paymentMethod", selectedPaymentMethod);
+    if (selectedSort !== "desc") p.set("sort", selectedSort);
+    if (startDateParam) p.set("startDate", startDateParam);
+    if (endDateParam) p.set("endDate", endDateParam);
+    p.set("page", String(pageNumber));
     return `/jobs?${p.toString()}`;
   };
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* หัวกระดาษ */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -108,279 +149,382 @@ export default async function JobListPage({ searchParams }: PageProps) {
               📋 รายการงานสูบส้วม
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              พบทั้งหมด {totalCount.toLocaleString()} รายการ {isAdmin ? "(ภาพรวมบริษัท)" : "(งานที่คุณเกี่ยวข้อง)"}
+              พบทั้งหมด {totalJobs} รายการ {currentUser.role === "ADMIN" ? "(ภาพรวมบริษัท)" : "(รายการของคุณ)"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/jobs/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition"
-            >
-              + ส่งงานใหม่
-            </Link>
-          </div>
+          <Link
+            href="/jobs/new"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm"
+          >
+            + ส่งงานใหม่
+          </Link>
         </div>
 
-        {/* แถบตัวกรอง (Filter Form) */}
-        <form method="GET" className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">คันรถ</label>
-              <select
-                name="vehicleId"
-                defaultValue={vehicleId || ""}
-                className="w-full text-xs p-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none"
-              >
-                <option value="">ทั้งหมด</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.plateNumber}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {isAdmin && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">พนักงาน</label>
+        {/* แถบตัวกรอง */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+          <form method="GET" action="/jobs" className="space-y-4 text-xs">
+            {/* แถวบน: คันรถ / พนักงาน / วิธีชำระเงิน / เรียงลำดับ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium">คันรถ</label>
                 <select
-                  name="userId"
-                  defaultValue={userId || ""}
-                  className="w-full text-xs p-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none"
+                  name="vehicleId"
+                  defaultValue={selectedVehicleId}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="">ทั้งหมด</option>
-                  {staffList.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
+                  {vehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.plateNumber}
                     </option>
                   ))}
                 </select>
               </div>
-            )}
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">วิธีชำระเงิน</label>
-              <select
-                name="paymentMethod"
-                defaultValue={paymentMethod || ""}
-                className="w-full text-xs p-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none"
-              >
-                <option value="">ทั้งหมด</option>
-                <option value="CASH">เงินสด</option>
-                <option value="TRANSFER">เงินโอน</option>
-              </select>
+              {currentUser.role === "ADMIN" && (
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium">พนักงาน</label>
+                  <select
+                    name="userId"
+                    defaultValue={selectedUserId}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                  >
+                    <option value="">ทั้งหมด</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium">วิธีชำระเงิน</label>
+                <select
+                  name="paymentMethod"
+                  defaultValue={selectedPaymentMethod}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                >
+                  <option value="ALL">ทั้งหมด</option>
+                  <option value="CASH">เงินสด</option>
+                  <option value="TRANSFER">เงินโอน</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium">เรียงลำดับ</label>
+                <select
+                  name="sort"
+                  defaultValue={selectedSort}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                >
+                  <option value="desc">ล่าสุด → เก่าสุด</option>
+                  <option value="asc">เก่าสุด → ล่าสุด</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">เรียงลำดับ</label>
-              <select
-                name="sortOrder"
-                defaultValue={sortOrder}
-                className="w-full text-xs p-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none"
-              >
-                <option value="desc">ล่าสุด → เก่าสุด</option>
-                <option value="asc">เก่าสุด → ล่าสุด</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500 font-medium">ช่วงวันที่:</span>
-              <input
-                type="date"
-                name="startDate"
-                defaultValue={startDate || ""}
-                className="p-1.5 border border-slate-200 rounded-lg text-slate-700 bg-slate-50 outline-none text-xs"
-              />
-              <span className="text-slate-400">ถึง</span>
-              <input
-                type="date"
-                name="endDate"
-                defaultValue={endDate || ""}
-                className="p-1.5 border border-slate-200 rounded-lg text-slate-700 bg-slate-50 outline-none text-xs"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href="/jobs"
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition"
-              >
-                ล้างตัวกรอง
-              </Link>
-              <button
-                type="submit"
-                className="px-4 py-1.5 bg-slate-900 hover:bg-black text-white rounded-lg text-xs font-semibold transition"
-              >
-                ค้นหา
-              </button>
-            </div>
-          </div>
-        </form>
-
-        {/* รายการแสดงผลงาน */}
-        {jobs.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 text-slate-400 text-sm">
-            ไม่พบรายการงานตามเงื่อนไขที่เลือก
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                {/* ฝั่งซ้าย: รายละเอียดงาน */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-base sm:text-lg font-bold text-slate-900">
-                      {job.customerName}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md font-medium">
-                      รถ: {job.vehicle.plateNumber}
-                    </span>
-                  </div>
-
-                  <p className="text-[13px] text-slate-600">
-                    👷 พนักงาน 1: <span className="font-semibold text-slate-800">{job.user.name}</span>
-                    {job.driver2 && (
-                      <> • ผู้ช่วย: <span className="font-semibold text-slate-800">{job.driver2.name}</span></>
-                    )}
-                    {job.customerPhone && (
-                      <> • เบอร์ลูกค้า: <span className="text-slate-700">{job.customerPhone}</span></>
-                    )}
-                  </p>
-
-                  <p className="text-[13px] text-slate-600 flex items-center gap-2 flex-wrap">
-                    <span>{new Date(job.createdAt).toLocaleString("th-TH")}</span>
-                    {job.latitude && job.longitude && (
-                      <a
-                        href={`https://www.google.com/maps?q=${job.latitude},${job.longitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-rose-500 hover:underline inline-flex items-center gap-0.5 font-medium"
-                      >
-                        📍 เปิด Google Maps
-                      </a>
-                    )}
-                  </p>
+            {/* แถวล่าง: ปุ่มลัดช่วงเวลา + ระบุวันที่ + ปุ่มล้าง/ค้นหา */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-slate-500 font-medium">ช่วงเวลา:</span>
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  {[
+                    { id: "today", label: "วันนี้" },
+                    { id: "this_month", label: "เดือนนี้" },
+                    { id: "this_year", label: "ปีนี้" },
+                    { id: "all", label: "ทั้งหมด" },
+                  ].map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/jobs?period=${item.id}${
+                        selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""
+                      }${selectedUserId ? `&userId=${selectedUserId}` : ""}${
+                        selectedPaymentMethod !== "ALL" ? `&paymentMethod=${selectedPaymentMethod}` : ""
+                      }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+                        period === item.id && !startDateParam && !endDateParam
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
                 </div>
 
-                {/* ฝั่งขวา: ปุ่มดูรูป + วิธีชำระเงิน + ยอดเงิน */}
-                <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
-                  {/* ปุ่มดูรูปก่อนสูบ */}
-                  {job.beforePhotoUrl ? (
-                    <a
-                      href={job.beforePhotoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-200 transition inline-flex items-center gap-1"
-                    >
-                      📷 ก่อนสูบ
-                    </a>
-                  ) : (
-                    <span className="text-xs px-2.5 py-1.5 text-slate-400 bg-slate-50 border border-slate-100 rounded-lg">
-                      ไม่มีรูปก่อน
-                    </span>
-                  )}
+                <input type="hidden" name="period" value={period} />
 
-                  {/* ปุ่มดูรูปหลังสูบ */}
-                  {job.afterPhotoUrl ? (
-                    <a
-                      href={job.afterPhotoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-200 transition inline-flex items-center gap-1"
-                    >
-                      📷 หลังสูบ
-                    </a>
-                  ) : (
-                    <span className="text-xs px-2.5 py-1.5 text-slate-400 bg-slate-50 border border-slate-100 rounded-lg">
-                      ไม่มีรูปหลัง
-                    </span>
-                  )}
-
-                  {/* ป้ายประเภทชำระเงิน */}
-                  <span
-                    className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold border ${
-                      job.paymentMethod === "TRANSFER"
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    }`}
-                  >
-                    {job.paymentMethod === "TRANSFER" ? "💳 เงินโอน" : "💵 เงินสด"}
-                  </span>
-
-                  {/* ปุ่มกระทบยอดเงินสด */}
-                  {job.paymentMethod === "CASH" && (
-                    <ReconcileButton
-                      jobId={job.id}
-                      isReconciled={job.isReconciled}
-                      isAdmin={isAdmin}
-                    />
-                  )}
-
-                  {/* ปุ่มดูสลิปเงินโอน */}
-                  {job.slipPhotoUrl && (
-                    <a
-                      href={job.slipPhotoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-200 transition inline-flex items-center gap-1"
-                    >
-                      🧾 สลิป
-                    </a>
-                  )}
-
-                  <span className="text-lg sm:text-xl font-bold text-slate-900 ml-1">
-                    ฿{Number(job.price).toLocaleString()}
-                  </span>
+                {/* ระบุวันที่ (Smart Auto-Fill) */}
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <span className="text-xs">หรือระบุวันที่:</span>
+                  <input
+                    type="date"
+                    name="startDate"
+                    defaultValue={startDateParam}
+                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white"
+                  />
+                  <span>ถึง</span>
+                  <input
+                    type="date"
+                    name="endDate"
+                    defaultValue={endDateParam}
+                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* แถบตัวควบคุมแบ่งหน้า (Pagination Controls) */}
-        {totalCount > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-sm text-xs sm:text-sm mt-6">
-            <div className="text-slate-500 font-medium">
-              แสดง {skip + 1} - {Math.min(skip + PAGE_SIZE, totalCount)} จาก {totalCount.toLocaleString()} รายการ
-            </div>
-
-            <div className="flex items-center gap-2">
-              {currentPage > 1 ? (
+              <div className="flex items-center gap-2 self-end lg:self-auto">
                 <Link
-                  href={createPageUrl(currentPage - 1)}
-                  className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                  href="/jobs"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition"
                 >
-                  ◀ ก่อนหน้า
+                  ล้างตัวกรอง
                 </Link>
-              ) : (
-                <span className="px-3 py-1.5 border border-slate-100 rounded-xl text-xs font-medium text-slate-300 cursor-not-allowed">
-                  ◀ ก่อนหน้า
-                </span>
-              )}
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-xl transition shadow-sm cursor-pointer"
+                >
+                  ค้นหา
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
 
-              <span className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
-                หน้า {currentPage} / {totalPages || 1}
+        {/* รายการการ์ดงาน (หน้าตาเดิมแบบรูปแรก) */}
+        <div className="space-y-3">
+          {jobs.length === 0 ? (
+            <div className="bg-white p-12 text-center text-slate-400 rounded-2xl border border-slate-200 text-sm">
+              ไม่พบรายการงานตามเงื่อนไขที่เลือก
+            </div>
+          ) : (
+            jobs.map((job) => {
+              const jobDate = new Date(job.completedAt || job.createdAt);
+              const dateText = jobDate.toLocaleDateString("th-TH", {
+                day: "numeric",
+                month: "short",
+                year: "2-digit",
+              });
+              const timeText = jobDate.toLocaleTimeString("th-TH", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+
+              return (
+                <div
+                  key={job.id}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm hover:border-slate-300 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                >
+                  {/* ฝั่งซ้าย: ข้อมูลลูกค้า รถ พนักงาน วันที่ และพิกัด */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-base text-slate-900">
+                        {job.customerName || "ไม่ระบุชื่อลูกค้า"}
+                      </span>
+                      {job.vehicle && (
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs rounded-md font-medium border border-slate-200/60">
+                          รถ: {job.vehicle.plateNumber}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        🧑‍💼 พนักงาน 1: <strong className="text-slate-700 font-semibold">{job.user?.name || "-"}</strong>
+                      </span>
+                      {job.driver2 && (
+                        <span>
+                          • พนักงาน 2: <strong className="text-slate-700 font-semibold">{job.driver2.name}</strong>
+                        </span>
+                      )}
+                      {job.customerPhone && (
+                        <span>• เบอร์ลูกค้า: {job.customerPhone}</span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-slate-400 flex items-center gap-3 pt-0.5 flex-wrap">
+                    <span>🕒 {dateText} {timeText} น.</span>
+
+                    {/* ดึง URL แผนที่จากทุกฟิลด์ที่เป็นไปได้ */}
+                    {(() => {
+                      const mapLink =
+                        job.locationUrl ||
+                        job.mapUrl ||
+                        (job.latitude && job.longitude
+                          ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}`
+                          : job.location && String(job.location).startsWith("http")
+                          ? job.location
+                          : null);
+
+                      if (!mapLink) return null;
+
+                      return (
+                        <a
+                          href={mapLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-rose-500 hover:text-rose-600 flex items-center gap-1 font-medium transition cursor-pointer"
+                        >
+                          📍 เปิด Google Maps
+                        </a>
+                      );
+                    })()}
+                  </div>
+                  </div>
+
+                  {/* ฝั่งขวา: สถานะรูปถ่าย, ประเภทเงิน, ปุ่มกดรับเงิน และราคา */}
+                  <div className="flex flex-wrap items-center gap-2.5 self-end md:self-auto">
+                    {/* สถานะรูปก่อน */}
+                    {job.beforePhotoUrl ? (
+                      <a
+                        href={job.beforePhotoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium"
+                      >
+                        ดูรูปก่อน
+                      </a>
+                    ) : (
+                      <span className="px-2.5 py-1 text-xs text-slate-400 bg-slate-100/80 rounded-lg">
+                        ไม่มีรูปก่อน
+                      </span>
+                    )}
+
+                    {/* สถานะรูปหลัง */}
+                    {job.afterPhotoUrl ? (
+                      <a
+                        href={job.afterPhotoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium"
+                      >
+                        ดูรูปหลัง
+                      </a>
+                    ) : (
+                      <span className="px-2.5 py-1 text-xs text-slate-400 bg-slate-100/80 rounded-lg">
+                        ไม่มีรูปหลัง
+                      </span>
+                    )}
+
+                    {/* สลิปเงินโอน (ถ้าเป็นเงินโอน) */}
+                    {job.paymentMethod === "TRANSFER" && (
+                      job.slipPhotoUrl ? (
+                        <a
+                          href={job.slipPhotoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition font-medium"
+                        >
+                          ดูสลิป
+                        </a>
+                      ) : (
+                        <span className="px-2.5 py-1 text-xs text-slate-400 bg-slate-100/80 rounded-lg">
+                          ไม่มีสลิป
+                        </span>
+                      )
+                    )}
+
+                    {/* ป้ายประเภทเงินสด / เงินโอน */}
+                    {job.paymentMethod === "CASH" ? (
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        💵 เงินสด
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200 flex items-center gap-1">
+                        💳 เงินโอน
+                      </span>
+                    )}
+
+                    {/* ปุ่มสำหรับเงินสด: รับเงินแล้ว / ค้างส่งเงินสด */}
+                    {job.paymentMethod === "CASH" && (
+                      currentUser.role === "ADMIN" ? (
+                        /* ฝั่งแอดมิน: มีปุ่มกดสลับสถานะ */
+                        <form action={toggleJobReconciled}>
+                          <input type="hidden" name="jobId" value={job.id} />
+                          {job.isReconciled ? (
+                            <button
+                              type="submit"
+                              className="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                              title="คลิกเพื่อยกเลิกสถานะรับเงิน"
+                            >
+                              ✓ รับเงินแล้ว (คลิกเพื่อยกเลิก)
+                            </button>
+                          ) : (
+                            <button
+                              type="submit"
+                              className="px-3 py-1 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer"
+                              title="คลิกเพื่อยืนยันว่ารับเงินสดแล้ว"
+                            >
+                              📥 กดรับเงินสด
+                            </button>
+                          )}
+                        </form>
+                      ) : (
+                        /* ฝั่งพนักงาน: แสดงเฉพาะป้ายสถานะ ไม่สามารถคลิกได้ */
+                        job.isReconciled ? (
+                          <span className="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center gap-1 select-none">
+                            ✓ รับเงินแล้ว
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg border border-amber-200 flex items-center gap-1 select-none">
+                            ⏳ ค้างส่งเงินสด
+                          </span>
+                        )
+                      )
+                    )}
+
+                    {/* ราคางาน */}
+                    <div className="text-xl font-bold text-slate-900 font-mono pl-1">
+                      ฿{Number(job.price || 0).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* แถบแบ่งหน้า (Pagination) */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+          <div>
+            แสดง {totalJobs === 0 ? 0 : startIndex + 1} - {endIndex} จาก {totalJobs} รายการ
+          </div>
+
+          <div className="flex items-center gap-2">
+            {currentPage > 1 ? (
+              <Link
+                href={getPageUrl(currentPage - 1)}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium"
+              >
+                ◀ ก่อนหน้า
+              </Link>
+            ) : (
+              <span className="px-3 py-1.5 bg-slate-50 text-slate-300 rounded-lg cursor-not-allowed">
+                ◀ ก่อนหน้า
               </span>
+            )}
 
-              {currentPage < totalPages ? (
-                <Link
-                  href={createPageUrl(currentPage + 1)}
-                  className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
-                  ถัดไป ▶
-                </Link>
-              ) : (
-                <span className="px-3 py-1.5 border border-slate-100 rounded-xl text-xs font-medium text-slate-300 cursor-not-allowed">
-                  ถัดไป ▶
-                </span>
-              )}
-            </div>
+            <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 shadow-sm">
+              หน้า {currentPage} / {totalPages}
+            </span>
+
+            {currentPage < totalPages ? (
+              <Link
+                href={getPageUrl(currentPage + 1)}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium"
+              >
+                ถัดไป ▶
+              </Link>
+            ) : (
+              <span className="px-3 py-1.5 bg-slate-50 text-slate-300 rounded-lg cursor-not-allowed">
+                ถัดไป ▶
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </main>
   );
