@@ -58,7 +58,6 @@ export async function GET(req: NextRequest) {
     let end: Date | null = null;
 
     if (period === "today") {
-      // 👈 เพิ่มเงื่อนไข "วันนี้" ตั้งแต่ 00:00:00 ถึง 23:59:59 ของวันนี้
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     } else if (period === "weekly") {
@@ -77,7 +76,6 @@ export async function GET(req: NextRequest) {
       if (startDateParam) start = new Date(`${startDateParam}T00:00:00`);
       if (endDateParam) end = new Date(`${endDateParam}T23:59:59`);
     } else if (period === "all") {
-      // ทั้งหมด ไม่ต้องกำหนด start/end
       start = null;
       end = null;
     }
@@ -122,6 +120,7 @@ export async function GET(req: NextRequest) {
       "ช่องทางชำระเงิน/หมวดหมู่",
       "รายรับ (บาท)",
       "รายจ่าย (บาท)",
+      "สลิป/หลักฐาน", // 👈 เพิ่ม Header สลิป
     ];
 
     type ReportRow = {
@@ -133,12 +132,16 @@ export async function GET(req: NextRequest) {
       channel: string;
       rev: number;
       exp: number;
+      slipUrl: string | null; // 👈 กำหนด Type ให้รองรับ URL สลิป
     };
 
     const list: ReportRow[] = [];
 
-    jobs.forEach((j) => {
+    jobs.forEach((j: any) => {
       const pTh = j.paymentMethod === "CASH" ? "เงินสด" : "โอนผ่านบัญชี";
+      // ดึงสลิปของ Job (กรณีเงินโอน)
+      const jobSlip = j.slipPhotoUrl || j.slipUrl || null;
+
       list.push({
         type: "รายรับ",
         timestamp: new Date(j.completedAt || j.createdAt),
@@ -148,11 +151,15 @@ export async function GET(req: NextRequest) {
         channel: pTh,
         rev: Number(j.price || 0),
         exp: 0,
+        slipUrl: jobSlip,
       });
     });
 
-    expenses.forEach((e) => {
+    expenses.forEach((e: any) => {
       const catTh = EXPENSE_CATEGORY_TH[e.category] || e.category;
+      // ดึงสลิปของ Expense
+      const expenseSlip = e.slipPhotoUrl || e.slipUrl || e.receiptUrl || null;
+
       list.push({
         type: "รายจ่าย",
         timestamp: new Date(e.createdAt),
@@ -162,22 +169,31 @@ export async function GET(req: NextRequest) {
         channel: catTh,
         rev: 0,
         exp: Number(e.amount || 0),
+        slipUrl: expenseSlip,
       });
     });
 
     list.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-    const rows = list.map((item) => [
-      escapeCsv(item.type),
-      escapeCsv(formatDateTh(item.timestamp)),
-      escapeCsv(formatTimeTh(item.timestamp)),
-      escapeCsv(item.plate),
-      escapeCsv(item.user),
-      escapeCsv(item.detail),
-      escapeCsv(item.channel),
-      item.rev,
-      item.exp,
-    ]);
+    const rows = list.map((item) => {
+      // แปลงเป็นสูตร HYPERLINK ให้กดคลิกเปิดดูสลิปได้จาก Excel
+      const slipCell = item.slipUrl
+        ? `"=HYPERLINK(""${item.slipUrl}"", ""ดูสลิป"")"`
+        : `"-"`;
+
+      return [
+        escapeCsv(item.type),
+        escapeCsv(formatDateTh(item.timestamp)),
+        escapeCsv(formatTimeTh(item.timestamp)),
+        escapeCsv(item.plate),
+        escapeCsv(item.user),
+        escapeCsv(item.detail),
+        escapeCsv(item.channel),
+        item.rev,
+        item.exp,
+        slipCell,
+      ];
+    });
 
     const csvBody =
       "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");

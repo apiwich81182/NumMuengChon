@@ -7,11 +7,11 @@ export const revalidate = 0;
 
 interface PageProps {
   searchParams: Promise<{
-    period?: string; // "today" | "this_month" | "this_year" | "all" | "custom"
+    period?: string;
     vehicleId?: string;
     userId?: string;
     category?: string;
-    sort?: string; // "desc" | "asc"
+    sort?: string;
     startDate?: string;
     endDate?: string;
     page?: string;
@@ -44,7 +44,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
   const currentPage = Math.max(1, Number(params.page) || 1);
   const pageSize = 10;
 
-  // 1. คำนวณช่วงเวลา Start/End (Smart Auto-Fill: ถ้าเลือกวันเดียว ให้จบในวันนั้นทันที)
+  // 1. คำนวณช่วงเวลา Start/End (Smart Auto-Fill)
   let start: Date | null = null;
   let end: Date | null = null;
 
@@ -64,15 +64,8 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
   }
 
-  // 2. สร้างเงื่อนไข Where
+  // 2. สร้างเงื่อนไข Where (พนักงานเห็นเฉพาะของตัวเอง)
   const whereCondition: any = {};
-
-  if (currentUser.role !== "ADMIN") {
-    whereCondition.userId = currentUser.id;
-  } else if (selectedUserId) {
-    // ถ้าเป็น ADMIN และมีการเลือกกรองตามพนักงาน
-    whereCondition.userId = selectedUserId;
-  }
 
   if (start || end) {
     const dateRange: any = {};
@@ -85,7 +78,10 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     whereCondition.vehicleId = selectedVehicleId;
   }
 
-  if (selectedUserId) {
+  if (currentUser.role !== "ADMIN") {
+    whereCondition.userId = currentUser.id;
+    whereCondition.isAdminOnly = false; 
+  } else if (selectedUserId) {
     whereCondition.userId = selectedUserId;
   }
 
@@ -93,7 +89,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     whereCondition.category = selectedCategory;
   }
 
-  // 3. ดึงข้อมูลรถ พนักงาน ผลรวมยอดเงิน และรายการรายจ่าย
+  // 3. ดึงข้อมูล
   const [vehicles, users, totalCount, allFilteredExpenses, expenses] = await Promise.all([
     prisma.vehicle.findMany({
       where: { isActive: true },
@@ -150,21 +146,22 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
         {/* ส่วนหัว */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            📕 รายการรายจ่าย
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            พบทั้งหมด {totalCount} รายการ {currentUser.role === "ADMIN" ? "(ภาพรวมบริษัท)" : "(รายการของคุณ)"}
-            {currentUser.role === "ADMIN" && (
-              <>
-                {" "}• รวม:{" "}
-                <strong className="text-rose-600 font-bold">
-                  ฿{totalExpenseSum.toLocaleString()}
-                </strong>
-              </>
-            )}
-          </p>
-        </div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              📕 รายการรายจ่าย
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              พบทั้งหมด {totalCount} รายการ{" "}
+              {currentUser.role === "ADMIN" ? "(ภาพรวมบริษัท)" : "(รายการของคุณ)"}
+              {currentUser.role === "ADMIN" && (
+                <>
+                  {" "}• รวม:{" "}
+                  <strong className="text-rose-600 font-bold">
+                    ฿{totalExpenseSum.toLocaleString()}
+                  </strong>
+                </>
+              )}
+            </p>
+          </div>
           <Link
             href="/expenses/new"
             className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm"
@@ -176,8 +173,12 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
         {/* แถบตัวกรอง */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
           <form method="GET" action="/expenses" className="space-y-4 text-xs">
-            {/* แถวบน: คันรถ / พนักงาน / หมวดหมู่ / เรียงลำดับ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 ${
+                currentUser.role === "ADMIN" ? "lg:grid-cols-4" : "lg:grid-cols-3"
+              } gap-4`}
+            >
+              {/* คันรถ */}
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium">คันรถ</label>
                 <select
@@ -194,6 +195,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                 </select>
               </div>
 
+              {/* กรองพนักงาน (แสดงเฉพาะแอดมิน) */}
               {currentUser.role === "ADMIN" && (
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium">พนักงาน</label>
@@ -212,6 +214,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                 </div>
               )}
 
+              {/* หมวดหมู่ */}
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium">หมวดหมู่</label>
                 <select
@@ -223,7 +226,6 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                   <option value="FUEL">ค่าน้ำมัน</option>
                   <option value="DISPOSAL_FEE">ค่าจุดทิ้งของเสีย</option>
                   <option value="MAINTENANCE">ค่าซ่อมบำรุง</option>
-                  {/* แสดงเฉพาะแอดมินเท่านั้น */}
                   {currentUser.role === "ADMIN" && (
                     <option value="SALARY">ค่าแรง / เงินเดือน</option>
                   )}
@@ -231,6 +233,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                 </select>
               </div>
 
+              {/* เรียงลำดับ */}
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium">เรียงลำดับ</label>
                 <select
@@ -244,7 +247,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* แถวล่าง: ปุ่มลัดช่วงเวลา + ระบุวันที่ + ปุ่มล้าง/ค้นหา */}
+            {/* แถวล่าง: ปุ่มลัดช่วงเวลา + ระบุวันที่ */}
             <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-slate-500 font-medium">ช่วงเวลา:</span>
@@ -275,7 +278,6 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
 
                 <input type="hidden" name="period" value={period} />
 
-                {/* ระบุวันที่ (Smart Auto-Fill) */}
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <span className="text-xs">หรือระบุวันที่:</span>
                   <input
@@ -347,7 +349,14 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                       second: "2-digit",
                     });
 
-                    const slipUrl = exp.slipUrl || exp.receiptUrl || exp.imageUrl;
+                    // ตรวจจับสลิปจากทุกฟิลด์ที่เป็นไปได้
+                    const slipLink =
+                      exp.slipPhotoUrl ||
+                      exp.slipUrl ||
+                      exp.receiptUrl ||
+                      exp.receiptPhotoUrl ||
+                      exp.imageUrl ||
+                      exp.photoUrl;
 
                     return (
                       <tr key={exp.id} className="hover:bg-slate-50 transition">
@@ -359,8 +368,10 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                           <span className="font-semibold text-slate-800">
                             {CATEGORY_NAMES[exp.category] || exp.category}
                           </span>
-                          {exp.user?.role === "ADMIN" && (
-                            <span className="ml-2 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] rounded border border-amber-200">
+
+                          {/* 🔒 แสดงป้ายแอดมินถ้าค่า isAdminOnly เป็น true */}
+                          {Boolean(exp.isAdminOnly) && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] rounded border border-amber-200 font-semibold inline-flex items-center gap-0.5">
                               🔒 แอดมิน
                             </span>
                           )}
@@ -377,12 +388,12 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
                           {exp.note || exp.description || "-"}
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                          {slipUrl ? (
+                          {slipLink ? (
                             <a
-                              href={slipUrl}
+                              href={slipLink}
                               target="_blank"
                               rel="noreferrer"
-                              className="px-2.5 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                              className="px-2.5 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium"
                             >
                               ดูสลิป
                             </a>
