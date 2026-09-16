@@ -8,7 +8,7 @@ import {
   summarizeExpensesByCategory,
   calculateProfitMargin,
 } from "@/lib/finance";
-import { getDateRange, toDateFilter } from "@/lib/date-range";
+import { getDateRange, toDateFilter, getThaiDateParts } from "@/lib/date-range";
 import { THAI_MONTHS_FULL } from "@/lib/formatters";
 import { getActiveDrivers } from "@/lib/user-service";
 
@@ -51,11 +51,17 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
     expenseDateWhere.createdAt = dateFilter;
   }
 
-  // วันและเดือนสำหรับตาราง Matrix Attendance
-  const currentMonthIdx = now.getMonth();
-  const currentYear = now.getFullYear();
-  const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+  // วันและเดือนสำหรับตาราง Matrix Attendance (คำนวณตามเวลาไทย Asia/Bangkok)
+  const { year: currentYear, month: currentMonthNum } = getThaiDateParts(now);
+  const currentMonthIdx = currentMonthNum - 1;
+  const daysInMonth = new Date(currentYear, currentMonthNum, 0).getDate();
   const attendanceDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  // คำนวณช่วงของเดือนปัจจุบันตามเวลาไทยสำหรับดึง monthJobs
+  const { start: monthStart, end: monthEnd } = getDateRange({
+    period: "this_month",
+    now,
+  });
 
   // Query ดึงข้อมูล
   const [vehicles, allExpenses, jobs, drivers, monthJobs] = await Promise.all([
@@ -82,12 +88,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       },
     }),
     getActiveDrivers(),
-    // 🌟 เพิ่ม Query นี้: ดึงเฉพาะงานของเดือนปัจจุบันทั้งเดือน (ไม่ผูกกับตัวกรองช่วงเวลาด้านบน)
+    // 🌟 ดึงเฉพาะงานของเดือนปัจจุบันทั้งเดือนตามเวลาไทย (Asia/Bangkok)
     prisma.job.findMany({
       where: {
         completedAt: {
-          gte: new Date(currentYear, currentMonthIdx, 1, 0, 0, 0),
-          lte: new Date(currentYear, currentMonthIdx + 1, 0, 23, 59, 59, 999),
+          ...(monthStart ? { gte: monthStart } : {}),
+          ...(monthEnd ? { lte: monthEnd } : {}),
         },
       },
       select: {
@@ -648,11 +654,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                     </td>
                     {attendanceDays.map((dayNum) => {
                       const hasJobWorked = monthJobs.some((j) => {
-                        const jobDate = new Date(j.completedAt || j.createdAt);
+                        const jobDate = j.completedAt || j.createdAt;
+                        const { year: jYear, month: jMonth, day: jDay } = getThaiDateParts(jobDate);
                         const isSameDay =
-                          jobDate.getDate() === dayNum &&
-                          jobDate.getMonth() === currentMonthIdx &&
-                          jobDate.getFullYear() === currentYear;
+                          jDay === dayNum &&
+                          jMonth === currentMonthNum &&
+                          jYear === currentYear;
 
                         const isWorker = j.userId === d.id || j.driver2Id === d.id;
                         return isSameDay && isWorker;

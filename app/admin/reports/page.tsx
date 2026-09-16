@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/auth";
 import Link from "next/link";
-import { getDateRange, toDateFilter, toLocalDateKey } from "@/lib/date-range";
+import { getDateRange, toDateFilter, toLocalDateKey, getThaiDateParts } from "@/lib/date-range";
 import { Prisma } from "@prisma/client";
 import { summarizeFinances } from "@/lib/finance";
 import { THAI_MONTHS_SHORT } from "@/lib/formatters";
@@ -104,22 +104,27 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
     }));
 
     jobs.forEach((j) => {
-      const d = new Date(j.completedAt || j.createdAt);
-      if (d.getFullYear() === targetYear) {
-        breakdownList[d.getMonth()].revenue += Number(j.price || 0);
+      const { year, month } = getThaiDateParts(j.completedAt || j.createdAt);
+      if (year === targetYear) {
+        breakdownList[month - 1].revenue += Number(j.price || 0);
       }
     });
 
     expenses.forEach((e) => {
-      const d = new Date(e.createdAt);
-      if (d.getFullYear() === targetYear) {
-        breakdownList[d.getMonth()].expense += Number(e.amount || 0);
+      const { year, month } = getThaiDateParts(e.createdAt);
+      if (year === targetYear) {
+        breakdownList[month - 1].expense += Number(e.amount || 0);
       }
     });
   } else if (period === "weekly" && start) {
     for (let i = 0; i < 7; i++) {
-      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-      const dayStr = d.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+      const d = new Date(start.getTime());
+      d.setDate(d.getDate() + i);
+      const dayStr = d.toLocaleDateString("th-TH", {
+        day: "numeric",
+        month: "short",
+        timeZone: "Asia/Bangkok",
+      });
       const localKey = toLocalDateKey(d);
 
       breakdownList.push({
@@ -149,7 +154,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
       }
     });
   } else if (period === "monthly" && start && end) {
-    const daysInMonth = end.getDate();
+    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
     for (let day = 1; day <= daysInMonth; day++) {
       breakdownList.push({
         label: `${day}`,
@@ -161,9 +166,8 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
     }
 
     jobs.forEach((j) => {
-      const d = new Date(j.completedAt || j.createdAt);
-      if (d.getFullYear() === targetYear && d.getMonth() + 1 === targetMonth) {
-        const day = d.getDate();
+      const { year, month, day } = getThaiDateParts(j.completedAt || j.createdAt);
+      if (year === targetYear && month === targetMonth) {
         if (breakdownList[day - 1]) {
           breakdownList[day - 1].revenue += Number(j.price || 0);
         }
@@ -171,21 +175,22 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
     });
 
     expenses.forEach((e) => {
-      const d = new Date(e.createdAt);
-      if (d.getFullYear() === targetYear && d.getMonth() + 1 === targetMonth) {
-        const day = d.getDate();
+      const { year, month, day } = getThaiDateParts(e.createdAt);
+      if (year === targetYear && month === targetMonth) {
         if (breakdownList[day - 1]) {
           breakdownList[day - 1].expense += Number(e.amount || 0);
         }
       }
     });
   } else if (period === "custom" && start && end) {
-    const curr = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-
-    while (curr <= endOnly) {
+    const curr = new Date(start.getTime());
+    while (curr <= end) {
       const localKey = toLocalDateKey(curr);
-      const dayStr = curr.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+      const dayStr = curr.toLocaleDateString("th-TH", {
+        day: "numeric",
+        month: "short",
+        timeZone: "Asia/Bangkok",
+      });
       breakdownList.push({
         label: dayStr,
         revenue: 0,

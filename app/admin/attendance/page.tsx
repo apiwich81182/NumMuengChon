@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import Pagination from "@/components/Pagination";
 import { getActiveVehicles } from "@/lib/vehicle-service";
 import { getStaffAndDrivers } from "@/lib/user-service";
+import { formatDateTh, formatTimeTh } from "@/lib/formatters";
 import LeaveActionButtons from "./LeaveActionButtons";
 
 export const revalidate = 0;
@@ -166,22 +167,12 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
       userName: w.userName,
       type: "WORK",
       typeLabel: "เข้างานปกติ",
-      dateText: w.dateObj.toLocaleDateString("th-TH", {
-        day: "numeric",
-        month: "numeric",
-        year: "2-digit",
-      }),
+      dateText: formatDateTh(w.dateObj, { format: "short" }),
       rawDate: w.dateObj,
-      checkInText: w.firstTime.toLocaleTimeString("th-TH", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      checkInText: formatTimeTh(w.firstTime),
       checkOutText:
         w.jobCount > 1
-          ? w.lastTime.toLocaleTimeString("th-TH", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+          ? formatTimeTh(w.lastTime)
           : "-",
       note: `วิ่งงานจริง ${w.jobCount} เที่ยว${platesText ? ` (${platesText})` : ""}`,
       statusLabel: "ปกติ",
@@ -199,11 +190,7 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
         userName: leave.user?.name || "-",
         type: isSick ? "SICK" : "LEAVE",
         typeLabel: isSick ? "ลาป่วย" : "ลากิจ",
-        dateText: lDate.toLocaleDateString("th-TH", {
-          day: "numeric",
-          month: "numeric",
-          year: "2-digit",
-        }),
+        dateText: formatDateTh(lDate, { format: "short" }),
         rawDate: lDate,
         checkInText: "-",
         checkOutText: "-",

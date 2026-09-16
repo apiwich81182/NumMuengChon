@@ -12,7 +12,11 @@ type DateRangeOptions = {
   now?: Date;
 };
 
-function getThaiYearMonthDay(date = new Date()) {
+/**
+ * ดึง { year, month (1-12), day (1-31), dateStr: "YYYY-MM-DD" } ตามเวลาประเทศไทย (Asia/Bangkok)
+ */
+export function getThaiDateParts(dateInput: Date | string | number = new Date()) {
+  const date = typeof dateInput === "object" ? dateInput : new Date(dateInput);
   const thaiDateStr = date.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
   const [year, month, day] = thaiDateStr.split("-").map(Number);
   return { year, month, day, dateStr: thaiDateStr };
@@ -39,7 +43,7 @@ export function getDateRange({
     };
   }
 
-  const { year: tYear, month: tMonth, dateStr: tDateStr } = getThaiYearMonthDay(now);
+  const { year: tYear, month: tMonth, dateStr: tDateStr } = getThaiDateParts(now);
 
   switch (period) {
     case "today": {

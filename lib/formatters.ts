@@ -1,3 +1,5 @@
+import { getThaiDateParts } from "./date-range";
+
 export const THAI_MONTHS_SHORT = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
   "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
@@ -35,10 +37,8 @@ export function formatDateTh(
   const mode = options?.format || "slash";
 
   if (mode === "slash") {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear() + 543;
-    return `${day}/${month}/${year}`;
+    const { year, month, day } = getThaiDateParts(date);
+    return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year + 543}`;
   }
 
   if (mode === "short") {
