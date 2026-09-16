@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { createJob } from "@/actions/jobs";
 import imageCompression from "browser-image-compression";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -23,6 +24,7 @@ interface JobFormProps {
 }
 
 export default function JobForm({ vehicles, drivers, currentUserId }: JobFormProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [compressingText, setCompressingText] = useState("");
   const { coords, status: gpsStatus } = useGeolocation();
@@ -69,52 +71,55 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
     e.preventDefault();
     setLoading(true);
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    try {
+      const form = e.currentTarget;
+      const formData = new FormData(form);
 
-    // ย่อรูปภาพก่อนส่งขึ้น Server
-    const beforePhoto = formData.get("beforePhoto") as File;
-    const afterPhoto = formData.get("afterPhoto") as File;
-    const slipPhoto = formData.get("slipPhoto") as File;
+      // ย่อรูปภาพก่อนส่งขึ้น Server
+      const beforePhoto = formData.get("beforePhoto") as File;
+      const afterPhoto = formData.get("afterPhoto") as File;
+      const slipPhoto = formData.get("slipPhoto") as File;
 
-    if (beforePhoto && beforePhoto.size > 0) {
-      setCompressingText("กำลังบีบอัดรูปก่อนสูบ...");
-      const compressed = await compressFile(beforePhoto);
-      formData.set("beforePhoto", compressed, beforePhoto.name);
-    }
+      if (beforePhoto && beforePhoto.size > 0) {
+        setCompressingText("กำลังบีบอัดรูปก่อนสูบ...");
+        const compressed = await compressFile(beforePhoto);
+        formData.set("beforePhoto", compressed, beforePhoto.name);
+      }
 
-    if (afterPhoto && afterPhoto.size > 0) {
-      setCompressingText("กำลังบีบอัดรูปหลังสูบ...");
-      const compressed = await compressFile(afterPhoto);
-      formData.set("afterPhoto", compressed, afterPhoto.name);
-    }
+      if (afterPhoto && afterPhoto.size > 0) {
+        setCompressingText("กำลังบีบอัดรูปหลังสูบ...");
+        const compressed = await compressFile(afterPhoto);
+        formData.set("afterPhoto", compressed, afterPhoto.name);
+      }
 
-    if (slipPhoto && slipPhoto.size > 0) {
-      setCompressingText("กำลังบีบอัดรูปสลิป...");
-      const compressed = await compressFile(slipPhoto);
-      formData.set("slipPhoto", compressed, slipPhoto.name);
-    }
+      if (slipPhoto && slipPhoto.size > 0) {
+        setCompressingText("กำลังบีบอัดรูปสลิป...");
+        const compressed = await compressFile(slipPhoto);
+        formData.set("slipPhoto", compressed, slipPhoto.name);
+      }
 
-    setCompressingText("กำลังส่งข้อมูลขึ้นระบบ...");
+      setCompressingText("กำลังส่งข้อมูลขึ้นระบบ...");
 
-    if (coords.lat && coords.lng) {
-      formData.set("latitude", coords.lat.toString());
-      formData.set("longitude", coords.lng.toString());
-    }
+      if (coords.lat && coords.lng) {
+        formData.set("latitude", coords.lat.toString());
+        formData.set("longitude", coords.lng.toString());
+      }
 
-    const res = await createJob(formData);
-    setLoading(false);
-    setCompressingText("");
+      const res = await createJob(formData);
+      setLoading(false);
+      setCompressingText("");
 
-    if (res.success) {
-      toast.success("บันทึกส่งงานเรียบร้อยแล้ว!");
-      form.reset();
-      setPaymentMethod("CASH");
-      setBeforePreview(null);
-      setAfterPreview(null);
-      setSlipPreview(null);
-    } else {
-      toast.error(res.error ? `เกิดข้อผิดพลาด: ${res.error}` : "เกิดข้อผิดพลาดในการบันทึก");
+      if (res.success) {
+        toast.success("บันทึกส่งงานเรียบร้อยแล้ว!");
+        router.push("/jobs");
+        router.refresh();
+      } else {
+        toast.error(res.error ? `เกิดข้อผิดพลาด: ${res.error}` : "เกิดข้อผิดพลาดในการบันทึก");
+      }
+    } catch (err) {
+      setLoading(false);
+      setCompressingText("");
+      toast.error(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก");
     }
   }
 

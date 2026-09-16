@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createExpense } from "@/actions/expenses";
+import { toast } from "@/components/Toast";
 
 interface VehicleOption {
   id: string;
@@ -62,13 +63,20 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
 
       const res = await createExpense(formData);
       if (!res.success) {
-        throw new Error(res.error || "บันทึกข้อมูลไม่สำเร็จ");
+        const message = res.error || "บันทึกข้อมูลไม่สำเร็จ";
+        setErrorMsg(message);
+        toast.error(message);
+        setLoading(false);
+        return;
       }
 
+      toast.success("บันทึกรายจ่ายเรียบร้อยแล้ว!");
       router.push("/expenses");
       router.refresh();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก");
+      const message = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก";
+      setErrorMsg(message);
+      toast.error(message);
       setLoading(false);
     }
   }

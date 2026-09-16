@@ -262,6 +262,28 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
           </Link>
         </div>
 
+        {/* สรุปสถิติย่อ */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 text-xs">
+          <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm text-center sm:text-left space-y-0.5">
+            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">💼 เข้างานปกติ</span>
+            <div className="text-base sm:text-xl font-bold text-blue-600">
+              {totalWork} <span className="text-[11px] font-normal text-slate-400">วัน/คน</span>
+            </div>
+          </div>
+          <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm text-center sm:text-left space-y-0.5">
+            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">🏖️ ลากิจ</span>
+            <div className="text-base sm:text-xl font-bold text-amber-600">
+              {totalLeave} <span className="text-[11px] font-normal text-slate-400">ครั้ง</span>
+            </div>
+          </div>
+          <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm text-center sm:text-left space-y-0.5">
+            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">🤒 ลาป่วย</span>
+            <div className="text-base sm:text-xl font-bold text-rose-600">
+              {totalSick} <span className="text-[11px] font-normal text-slate-400">ครั้ง</span>
+            </div>
+          </div>
+        </div>
+
         {/* แถบตัวกรอง */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
           <form method="GET" className="space-y-4 text-xs">
