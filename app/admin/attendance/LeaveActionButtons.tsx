@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateLeaveStatus } from "@/actions/attendance";
+import { toast } from "@/components/Toast";
 
 export default function LeaveActionButtons({
   attendanceId,
@@ -14,32 +15,38 @@ export default function LeaveActionButtons({
 
   async function handleAction(approved: boolean) {
     setLoading(true);
-    await updateLeaveStatus(attendanceId, approved);
+    const res = await updateLeaveStatus(attendanceId, approved);
     setLoading(false);
+    if (res.success) {
+      toast.success(approved ? "อนุมัติคำขอลาเรียบร้อยแล้ว" : "ยกเลิกการอนุมัติคำขอลาแล้ว");
+    } else {
+      toast.error(res.error || "เกิดข้อผิดพลาด");
+    }
   }
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
       {isApproved ? (
-        <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md font-semibold">
+        <span className="text-[11px] px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md font-semibold">
           ✓ อนุมัติแล้ว
         </span>
       ) : (
-        <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md font-semibold">
+        <span className="text-[11px] px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md font-semibold">
           ⏳ รออนุมัติ
         </span>
       )}
 
       <button
+        type="button"
         onClick={() => handleAction(!isApproved)}
         disabled={loading}
-        className={`text-xs px-2 py-1 rounded transition border ${
+        className={`text-[11px] px-2.5 py-1 rounded-lg transition font-medium border cursor-pointer ${
           isApproved
-            ? "text-rose-600 hover:bg-rose-50 border-rose-200"
-            : "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+            ? "text-rose-600 hover:bg-rose-50 border-rose-200 bg-white"
+            : "bg-blue-600 text-white hover:bg-blue-700 border-blue-600 shadow-sm"
         }`}
       >
-        {isApproved ? "ยกเลิก" : "อนุมัติ"}
+        {loading ? "..." : isApproved ? "ยกเลิก" : "อนุมัติ"}
       </button>
     </div>
   );

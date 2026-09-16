@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import Pagination from "@/components/Pagination";
 import { getActiveVehicles } from "@/lib/vehicle-service";
 import { getStaffAndDrivers } from "@/lib/user-service";
+import LeaveActionButtons from "./LeaveActionButtons";
 
 export const revalidate = 0;
 
@@ -150,6 +151,8 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
     checkOutText: string;
     note: string;
     statusLabel: string;
+    leaveId?: string;
+    isApproved?: boolean;
   };
 
   const combinedList: AttendanceRow[] = [];
@@ -206,9 +209,16 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
         checkOutText: "-",
         note: leave.note || "-",
         statusLabel: leave.isApproved ? "อนุมัติแล้ว" : "รอดำเนินการ",
+        leaveId: leave.id,
+        isApproved: leave.isApproved,
       });
     });
   }
+
+  // คำนวณสรุปสถิติ
+  const totalWork = combinedList.filter((c) => c.type === "WORK").length;
+  const totalLeave = combinedList.filter((c) => c.type === "LEAVE").length;
+  const totalSick = combinedList.filter((c) => c.type === "SICK").length;
 
   // 3. กรองตาม User, Type และการ Sort
   const filteredList = combinedList
@@ -246,11 +256,11 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-5 sm:space-y-6">
         {/* ส่วนหัว */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
               ⏰ บันทึกเวลาของพนักงาน
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -259,24 +269,24 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
           </div>
           <Link
             href="/admin/dashboard"
-            className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 transition shadow-sm"
+            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 transition shadow-sm text-center flex items-center justify-center gap-1.5"
           >
             📊 ดู Dashboard
           </Link>
         </div>
 
-        {/* แถบตัวกรองแบบ 2 แถว ตามดีไซน์มาตรฐาน */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        {/* แถบตัวกรอง */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
           <form method="GET" className="space-y-4 text-xs">
-            {/* แถวที่ 1: คันรถ / พนักงาน / หมวดหมู่ / เรียงลำดับ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* แถวที่ 1: คันรถ / พนักงาน / หมวดหมู่ / เรียงลำดับ (2 คอลัมน์บนมือถือ, 4 คอลัมน์บนจอใหญ่) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
               {/* คันรถ */}
-              <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium">คันรถ</label>
+              <div className="space-y-1">
+                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">คันรถ</label>
                 <select
                   name="vehicleId"
                   defaultValue={selectedVehicleId}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="">ทั้งหมด</option>
                   {vehicles.map((v) => (
@@ -288,12 +298,12 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
               </div>
 
               {/* พนักงาน */}
-              <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium">พนักงาน</label>
+              <div className="space-y-1">
+                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">พนักงาน</label>
                 <select
                   name="userId"
                   defaultValue={selectedUserId}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="">ทั้งหมด</option>
                   {users.map((u) => (
@@ -305,27 +315,27 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
               </div>
 
               {/* หมวดหมู่ / ประเภท */}
-              <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium">หมวดหมู่</label>
+              <div className="space-y-1">
+                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">หมวดหมู่</label>
                 <select
                   name="type"
                   defaultValue={selectedType}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="ALL">ทั้งหมด</option>
-                  <option value="WORK">เข้างานปกติ (จากงานที่วิ่ง)</option>
+                  <option value="WORK">เข้างานปกติ</option>
                   <option value="LEAVE">ลากิจ</option>
                   <option value="SICK">ลาป่วย</option>
                 </select>
               </div>
 
               {/* เรียงลำดับ */}
-              <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium">เรียงลำดับ</label>
+              <div className="space-y-1">
+                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">เรียงลำดับ</label>
                 <select
                   name="sort"
                   defaultValue={selectedSort}
-                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
                 >
                   <option value="desc">ล่าสุด → เก่าสุด</option>
                   <option value="asc">เก่าสุด → ล่าสุด</option>
@@ -334,66 +344,68 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
             </div>
 
             {/* แถวที่ 2: ปุ่มลัดช่วงเวลา + ระบุวันที่ + ปุ่มล้าง/ค้นหา */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-slate-500 font-medium">ช่วงเวลา:</span>
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-                  {[
-                    { id: "today", label: "วันนี้" },
-                    { id: "this_month", label: "เดือนนี้" },
-                    { id: "this_year", label: "ปีนี้" },
-                    { id: "all", label: "ทั้งหมด" },
-                  ].map((item) => (
-                    <Link
-                      key={item.id}
-                      href={`/admin/attendance?period=${item.id}${
-                        selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""
-                      }${selectedUserId ? `&userId=${selectedUserId}` : ""}${
-                        selectedType !== "ALL" ? `&type=${selectedType}` : ""
-                      }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
-                      className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-                        period === item.id && !startDateParam && !endDateParam
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
+            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-medium whitespace-nowrap text-xs">ช่วงเวลา:</span>
+                  <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                    {[
+                      { id: "today", label: "วันนี้" },
+                      { id: "this_month", label: "เดือนนี้" },
+                      { id: "this_year", label: "ปีนี้" },
+                      { id: "all", label: "ทั้งหมด" },
+                    ].map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/admin/attendance?period=${item.id}${
+                          selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""
+                        }${selectedUserId ? `&userId=${selectedUserId}` : ""}${
+                          selectedType !== "ALL" ? `&type=${selectedType}` : ""
+                        }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
+                        className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold transition whitespace-nowrap text-center flex-1 sm:flex-initial ${
+                          period === item.id && !startDateParam && !endDateParam
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
 
                 <input type="hidden" name="period" value={period} />
 
                 {/* หรือระบุวันที่ */}
-                <div className="flex items-center gap-1.5 text-slate-400">
-                  <span className="text-xs">หรือระบุวันที่:</span>
+                <div className="flex items-center gap-1.5 text-slate-400 flex-wrap">
+                  <span className="text-xs whitespace-nowrap">หรือวันที่:</span>
                   <input
                     type="date"
                     name="startDate"
                     defaultValue={startDateParam}
-                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white"
+                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white text-xs flex-1 sm:flex-initial"
                   />
-                  <span>ถึง</span>
+                  <span>-</span>
                   <input
                     type="date"
                     name="endDate"
                     defaultValue={endDateParam}
-                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white"
+                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white text-xs flex-1 sm:flex-initial"
                   />
                 </div>
               </div>
 
               {/* ปุ่มล้างตัวกรอง & ค้นหา */}
-              <div className="flex items-center gap-2 self-end lg:self-auto">
+              <div className="grid grid-cols-2 sm:flex items-center gap-2 pt-1 lg:pt-0">
                 <Link
                   href="/admin/attendance"
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition"
+                  className="px-4 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition text-center flex items-center justify-center"
                 >
                   ล้างตัวกรอง
                 </Link>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-xl transition shadow-sm cursor-pointer"
+                  className="px-5 py-2.5 sm:py-2 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-xl transition shadow-sm cursor-pointer text-center flex items-center justify-center"
                 >
                   ค้นหา
                 </button>
@@ -402,8 +414,93 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
           </form>
         </div>
 
-        {/* ตารางแสดงรายการ */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {/* มุมมองมือถือ: การ์ดบันทึกเวลา (< md) */}
+        <div className="block md:hidden space-y-3">
+          {paginatedList.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400 text-xs">
+              ไม่พบประวัติการเข้างานหรือการลาตามเงื่อนไขที่เลือก
+            </div>
+          ) : (
+            paginatedList.map((row) => (
+              <div
+                key={row.id}
+                className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-sm space-y-3"
+              >
+                {/* แถวบน: ชื่อพนักงาน + วันที่ + ประเภท */}
+                <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div>
+                    <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                      👤 {row.userName}
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                      📅 {row.dateText}
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
+                      row.type === "WORK"
+                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : row.type === "LEAVE"
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-rose-50 text-rose-700 border border-rose-200"
+                    }`}
+                  >
+                    {row.typeLabel}
+                  </span>
+                </div>
+
+                {/* แถวกลาง: เวลาเข้า-ออกงาน (กรณีเข้างาน) หรือเหตุผลการลา */}
+                {row.type === "WORK" ? (
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-slate-400 block font-medium">เข้างาน (เที่ยวแรก)</span>
+                      <span className="font-mono font-bold text-emerald-600 text-sm">
+                        {row.checkInText}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-slate-400 block font-medium">ออกงาน (เที่ยวสุดท้าย)</span>
+                      <span className="font-mono font-bold text-rose-500 text-sm">
+                        {row.checkOutText}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-amber-50/50 p-2.5 rounded-xl border border-amber-100/80 text-xs space-y-1">
+                    <span className="text-[10px] text-amber-600 font-medium block">เหตุผลการลา:</span>
+                    <p className="text-slate-700">{row.note}</p>
+                  </div>
+                )}
+
+                {/* หมายเหตุงานวิ่ง (ถ้ามี) */}
+                {row.type === "WORK" && (
+                  <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                    <span className="text-slate-400">🚛</span>
+                    <span>{row.note}</span>
+                  </div>
+                )}
+
+                {/* แถวล่าง: สถานะการอนุมัติ / ปุ่มจัดการการลา */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <span className="text-slate-400 text-[11px]">สถานะ:</span>
+                  {row.leaveId ? (
+                    <LeaveActionButtons
+                      attendanceId={row.leaveId}
+                      isApproved={Boolean(row.isApproved)}
+                    />
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                      {row.statusLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* มุมมอง Desktop: ตารางเต็ม (>= md) */}
+        <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
@@ -456,15 +553,24 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
                         {row.note}
                       </td>
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
-                            row.statusLabel === "ปกติ" || row.statusLabel === "อนุมัติแล้ว"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}
-                        >
-                          {row.statusLabel}
-                        </span>
+                        {row.leaveId ? (
+                          <div className="flex justify-center">
+                            <LeaveActionButtons
+                              attendanceId={row.leaveId}
+                              isApproved={Boolean(row.isApproved)}
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${
+                              row.statusLabel === "ปกติ" || row.statusLabel === "อนุมัติแล้ว"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {row.statusLabel}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -472,10 +578,12 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
               </tbody>
             </table>
           </div>
+        </div>
 
-          {/* Pagination Footer */}
+        {/* Pagination Footer */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-4">
           <Pagination
-            className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500"
+            className="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500"
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}

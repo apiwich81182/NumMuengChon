@@ -151,7 +151,6 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
               id="receiptPhoto"
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleFileChange}
               className="sr-only"
             />
