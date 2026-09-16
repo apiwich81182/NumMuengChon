@@ -275,7 +275,6 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
               type="file"
               name="slipPhoto"
               accept="image/*"
-              capture="environment"
               onChange={(e) => handlePhotoSelect(e, setSlipPreview)}
               className="sr-only"
             />
@@ -319,7 +318,6 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             type="file"
             name="beforePhoto"
             accept="image/*"
-            capture="environment"
             onChange={(e) => handlePhotoSelect(e, setBeforePreview)}
             className="sr-only"
           />
@@ -359,7 +357,6 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             type="file"
             name="afterPhoto"
             accept="image/*"
-            capture="environment"
             onChange={(e) => handlePhotoSelect(e, setAfterPreview)}
             className="sr-only"
           />
