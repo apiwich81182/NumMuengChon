@@ -1,24 +1,23 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUserAction, requireAdminAction } from "@/lib/auth";
 import { AttendanceType } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { getTodayRange } from "@/lib/date-range";
+import { revalidateAttendance } from "@/lib/revalidation";
 
 // 1. เช็กอินเข้างาน (Check-in)
 export async function checkInAttendance(formData: FormData) {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return { success: false, error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" };
-    }
+    const auth = await requireUserAction();
+    if (!auth.success) return auth;
+    const currentUser = auth.user;
 
     const lat = formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null;
     const lng = formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null;
 
     // ตรวจสอบช่วงเวลาของวันนี้
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const { start: todayStart } = getTodayRange();
 
     // เช็กว่าผู้ใช้คนนี้ได้กดเช็กอินไปแล้วหรือยังในวันนี้
     const existing = await prisma.attendance.findFirst({
@@ -43,8 +42,7 @@ export async function checkInAttendance(formData: FormData) {
       },
     });
 
-    revalidatePath("/attendance");
-    revalidatePath("/admin/dashboard");
+    revalidateAttendance();
     return { success: true };
   } catch (error) {
     console.error("Check-in error:", error);
@@ -55,13 +53,11 @@ export async function checkInAttendance(formData: FormData) {
 // 2. ลงเวลาออกงาน (Check-out)
 export async function checkOutAttendance() {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return { success: false, error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" };
-    }
+    const auth = await requireUserAction();
+    if (!auth.success) return auth;
+    const currentUser = auth.user;
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const { start: todayStart } = getTodayRange();
 
     // หารายการเช็กอินของวันนี้ที่ยังไม่ได้กดออกงาน
     const activeAttendance = await prisma.attendance.findFirst({
@@ -85,8 +81,7 @@ export async function checkOutAttendance() {
       },
     });
 
-    revalidatePath("/attendance");
-    revalidatePath("/admin/dashboard");
+    revalidateAttendance();
     return { success: true };
   } catch (error) {
     console.error("Check-out error:", error);
@@ -97,10 +92,9 @@ export async function checkOutAttendance() {
 // 3. ยื่นคำขอลา (Leave Request)
 export async function requestLeave(formData: FormData) {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return { success: false, error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" };
-    }
+    const auth = await requireUserAction();
+    if (!auth.success) return auth;
+    const currentUser = auth.user;
 
     const type = formData.get("type") as AttendanceType;
     const note = formData.get("note") as string;
@@ -118,8 +112,7 @@ export async function requestLeave(formData: FormData) {
       },
     });
 
-    revalidatePath("/attendance");
-    revalidatePath("/admin/dashboard");
+    revalidateAttendance();
     return { success: true };
   } catch (error) {
     console.error("Leave request error:", error);
@@ -129,10 +122,8 @@ export async function requestLeave(formData: FormData) {
 
 // แอดมินอนุมัติหรือปฏิเสธคำขอลา
 export async function updateLeaveStatus(attendanceId: string, isApproved: boolean) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์ดำเนินการ" };
-  }
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
 
   try {
     await prisma.attendance.update({
@@ -140,8 +131,7 @@ export async function updateLeaveStatus(attendanceId: string, isApproved: boolea
       data: { isApproved },
     });
 
-    revalidatePath("/admin/attendance");
-    revalidatePath("/admin/dashboard");
+    revalidateAttendance();
     return { success: true };
   } catch {
     return { success: false, error: "เกิดข้อผิดพลาดในการเปลี่ยนสถานะการลา" };

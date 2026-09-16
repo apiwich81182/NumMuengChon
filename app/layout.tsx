@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import BottomNav from "@/components/BottomNav";
 import { getCurrentUser } from "@/lib/auth";
+import { ToastContainer } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "ระบบจัดการรถสูบส้วม",
@@ -18,9 +20,11 @@ export default async function RootLayout({
 
   return (
     <html lang="th">
-      <body className="antialiased pt-14 pb-20 md:pt-28 md:pb-8 bg-slate-50 min-h-screen">
+      <body className="antialiased pb-20 sm:pb-8 bg-slate-50 min-h-screen">
+        <ToastContainer />
         <Navbar user={user} />
         {children}
+        <BottomNav user={user} />
       </body>
     </html>
   );

@@ -1,24 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { checkInAttendance, checkOutAttendance, requestLeave } from "@/actions/attendance";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { toast } from "@/components/Toast";
 
-export default function AttendanceClient({ todayRecord }: { todayRecord: any }) {
+type AttendanceRecord = {
+  checkInAt: Date | string | null;
+  checkOutAt: Date | string | null;
+};
+
+export default function AttendanceClient({ todayRecord }: { todayRecord: AttendanceRecord | null }) {
   const [loading, setLoading] = useState(false);
-  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({
-    lat: null,
-    lng: null,
-  });
-
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.warn(err.message),
-        { enableHighAccuracy: true }
-      );
-    }
-  }, []);
+  const { coords } = useGeolocation();
 
   async function handleCheckIn() {
     setLoading(true);
@@ -30,26 +24,31 @@ export default function AttendanceClient({ todayRecord }: { todayRecord: any }) 
 
     const res = await checkInAttendance(formData);
     setLoading(false);
-    if (res.success) alert("✅ เช็กอินเข้างานเรียบร้อยแล้ว");
-    else alert("❌ " + res.error);
+    if (res.success) toast.success("เช็กอินเข้างานเรียบร้อยแล้ว");
+    else toast.error(res.error || "เกิดข้อผิดพลาด");
   }
 
   async function handleCheckOut() {
     setLoading(true);
     const res = await checkOutAttendance();
     setLoading(false);
-    if (res.success) alert("✅ ลงเวลาออกงานเรียบร้อยแล้ว");
-    else alert("❌ " + res.error);
+    if (res.success) toast.success("ลงเวลาออกงานเรียบร้อยแล้ว");
+    else toast.error(res.error || "เกิดข้อผิดพลาด");
   }
 
   async function handleLeave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const res = await requestLeave(formData);
     setLoading(false);
-    if (res.success) alert("✅ ยื่นคำขอลาสำเร็จ รอแอดมินอนุมัติ");
-    else alert("❌ " + res.error);
+    if (res.success) {
+      toast.success("ยื่นคำขอลาสำเร็จ รอแอดมินอนุมัติ");
+      form.reset();
+    } else {
+      toast.error(res.error || "เกิดข้อผิดพลาด");
+    }
   }
 
   return (

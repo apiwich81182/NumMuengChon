@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireAdminPage } from "@/lib/auth";
 import Link from "next/link";
+import { getDateRange, toDateFilter, toLocalDateKey } from "@/lib/date-range";
+import { Prisma } from "@prisma/client";
+import Pagination from "@/components/Pagination";
+import { getActiveVehicles } from "@/lib/vehicle-service";
+import { getStaffAndDrivers } from "@/lib/user-service";
 
 export const revalidate = 0;
 
@@ -19,10 +23,7 @@ interface PageProps {
 }
 
 export default async function AdminAttendancePage({ searchParams }: PageProps) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser || currentUser.role !== "ADMIN") {
-    redirect("/jobs");
-  }
+  await requireAdminPage("/jobs");
 
   const params = await searchParams;
   const now = new Date();
@@ -36,70 +37,38 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
   const currentPage = Math.max(1, Number(params.page) || 1);
   const pageSize = 12;
 
-  // คำนวณช่วงเวลาสำหรับการกรอง
-  let start: Date | null = null;
-  let end: Date | null = null;
-
-  if (startDateParam || endDateParam) {
-    if (startDateParam) start = new Date(`${startDateParam}T00:00:00`);
-    if (endDateParam) end = new Date(`${endDateParam}T23:59:59.999`);
-  } else if (period === "today") {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  } else if (period === "this_month") {
-    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  } else if (period === "this_year") {
-    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
-    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-  }
+  const { start, end } = getDateRange({
+    period,
+    startDate: startDateParam,
+    endDate: endDateParam,
+    now,
+  });
 
   // เงื่อนไข Filter สำหรับ Query
-  const jobWhere: any = {};
-  if (start || end) {
-    const range: any = {};
-    if (start) range.gte = start;
-    if (end) range.lte = end;
-    jobWhere.completedAt = range;
-  }
+  const jobWhere: Prisma.JobWhereInput = {};
+  const dateFilter = toDateFilter({ start, end });
+  if (dateFilter) jobWhere.completedAt = dateFilter;
   if (selectedVehicleId) {
     jobWhere.vehicleId = selectedVehicleId;
   }
 
   // ดึงข้อมูล Users, Vehicles, Jobs และ Attendance (การลา)
   const [users, vehicles, rawJobs, rawLeaves] = await Promise.all([
-    prisma.user.findMany({
-      where: { role: { in: ["DRIVER", "ADMIN"] } },
-      orderBy: { name: "asc" },
-    }),
-    prisma.vehicle.findMany({
-      where: { isActive: true },
-      orderBy: { plateNumber: "asc" },
-    }),
+    getStaffAndDrivers(),
+    getActiveVehicles(),
     prisma.job.findMany({
       where: jobWhere,
       include: { user: true, driver2: true, vehicle: true },
       orderBy: { completedAt: "asc" },
     }),
-    (prisma as any).attendance
-      ? (prisma as any).attendance
-          .findMany({
-            where: {
-              ...(start || end
-                ? {
-                    createdAt: {
-                      ...(start ? { gte: start } : {}),
-                      ...(end ? { lte: end } : {}),
-                    },
-                  }
-                : {}),
-              status: { in: ["LEAVE", "SICK", "ลากิจ", "ลาป่วย"] },
-            },
-            include: { user: true },
-            orderBy: { createdAt: "desc" },
-          })
-          .catch(() => [])
-      : Promise.resolve([]),
+    prisma.attendance.findMany({
+      where: {
+        type: { in: ["SICK_LEAVE", "BUSINESS_LEAVE"] },
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
+      },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   // 1. จัดกลุ่มงาน (Jobs) รายวันแยกตามคนขับ
@@ -118,7 +87,7 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
 
   rawJobs.forEach((job) => {
     const jobDate = new Date(job.completedAt || job.createdAt);
-    const dateKey = jobDate.toISOString().split("T")[0];
+    const dateKey = toLocalDateKey(jobDate);
     const plate = job.vehicle?.plateNumber || "";
 
     // คนขับหลัก
@@ -218,10 +187,9 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
 
   // เพิ่มข้อมูลการลา (ถ้าไม่มีการเลือกกรองเจาะจงคันรถ)
   if (!selectedVehicleId) {
-    rawLeaves.forEach((leave: any) => {
-      const lDate = new Date(leave.date || leave.createdAt);
-      const isSick =
-        leave.status === "SICK" || String(leave.status).includes("ลาป่วย");
+    rawLeaves.forEach((leave) => {
+      const lDate = new Date(leave.createdAt);
+      const isSick = leave.type === "SICK_LEAVE";
       combinedList.push({
         id: `leave_${leave.id}`,
         userId: leave.userId,
@@ -236,8 +204,8 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
         rawDate: lDate,
         checkInText: "-",
         checkOutText: "-",
-        note: leave.reason || leave.note || "-",
-        statusLabel: leave.approved ? "อนุมัติแล้ว" : "รอดำเนินการ",
+        note: leave.note || "-",
+        statusLabel: leave.isApproved ? "อนุมัติแล้ว" : "รอดำเนินการ",
       });
     });
   }
@@ -506,43 +474,15 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
           </div>
 
           {/* Pagination Footer */}
-          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
-            <div>
-              แสดง {totalItems === 0 ? 0 : startIndex + 1} - {endIndex} จาก {totalItems} รายการ
-            </div>
-
-            <div className="flex items-center gap-2">
-              {currentPage > 1 ? (
-                <Link
-                  href={getPageUrl(currentPage - 1)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium"
-                >
-                  ◀ ก่อนหน้า
-                </Link>
-              ) : (
-                <span className="px-3 py-1.5 bg-slate-50 text-slate-300 rounded-lg cursor-not-allowed">
-                  ◀ ก่อนหน้า
-                </span>
-              )}
-
-              <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 shadow-sm">
-                หน้า {currentPage} / {totalPages}
-              </span>
-
-              {currentPage < totalPages ? (
-                <Link
-                  href={getPageUrl(currentPage + 1)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium"
-                >
-                  ถัดไป ▶
-                </Link>
-              ) : (
-                <span className="px-3 py-1.5 bg-slate-50 text-slate-300 rounded-lg cursor-not-allowed">
-                  ถัดไป ▶
-                </span>
-              )}
-            </div>
-          </div>
+          <Pagination
+            className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            buildPageUrl={getPageUrl}
+          />
         </div>
       </div>
     </main>

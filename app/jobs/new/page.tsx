@@ -1,13 +1,14 @@
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUserPage } from "@/lib/auth";
 import JobForm from "./JobForm";
+import { getActiveVehicles } from "@/lib/vehicle-service";
+import { getActiveDrivers } from "@/lib/user-service";
 
 export default async function NewJobPage() {
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireUserPage("/login");
 
   const [vehicles, drivers] = await Promise.all([
-    prisma.vehicle.findMany({ where: { isActive: true }, orderBy: { plateNumber: "asc" } }),
-    prisma.user.findMany({ where: { role: "DRIVER" }, orderBy: { name: "asc" } }),
+    getActiveVehicles(),
+    getActiveDrivers(),
   ]);
 
   return (

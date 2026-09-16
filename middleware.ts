@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { jwtVerify, type JWTPayload } from "jose";
+
+type MiddlewareSession = JWTPayload & { role?: string };
 
 const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || "waste-truck-secret-key-super-secure-change-in-prod"
@@ -11,11 +13,11 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("session_token")?.value;
 
   // ตรวจสอบ JWT Token
-  let session: any = null;
+  let session: MiddlewareSession | null = null;
   if (token) {
     try {
       const { payload } = await jwtVerify(token, SECRET_KEY);
-      session = payload;
+      session = payload as MiddlewareSession;
     } catch {
       session = null;
     }

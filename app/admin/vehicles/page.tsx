@@ -1,17 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { requireAdminPage } from "@/lib/auth";
 import VehicleManagementClient from "./VehicleManagementClient";
+import { getAllVehicles } from "@/lib/vehicle-service";
 
 export const revalidate = 0;
 
 export default async function VehiclesAdminPage() {
-  const vehicles = await prisma.vehicle.findMany({
-    include: {
-      _count: {
-        select: { jobs: true },
-      },
-    },
-    orderBy: { plateNumber: "asc" },
-  });
+  await requireAdminPage("/jobs");
+
+  const vehicles = await getAllVehicles();
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">

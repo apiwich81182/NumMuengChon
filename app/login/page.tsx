@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { login } from "@/actions/auth";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -16,8 +18,8 @@ export default function LoginPage() {
     const res = await login(formData);
 
     if (res?.success) {
-      // ใช้ window.location.href เพื่อโหลดเซสชันใหม่ทั้งหมดทันที ไม่ติดแคชเดิม
-      window.location.href = "/jobs";
+      router.push("/jobs");
+      router.refresh();
     } else {
       setErrorMsg(res?.error || "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง");
       setLoading(false);

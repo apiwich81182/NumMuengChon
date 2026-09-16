@@ -2,10 +2,23 @@
 
 import { useState } from "react";
 import { createUser, resetUserPassword, deleteUser } from "@/actions/admin";
+import { toast } from "@/components/Toast";
+import type { Role } from "@prisma/client";
 
-export default function StaffManagementClient({ initialUsers }: { initialUsers: any[] }) {
+type StaffUser = {
+  id: string;
+  name: string;
+  phone: string;
+  role: Role;
+  _count?: {
+    jobsAsDriver1: number;
+    jobsAsDriver2: number;
+  };
+};
+
+export default function StaffManagementClient({ initialUsers }: { initialUsers: StaffUser[] }) {
   const [loading, setLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [selectedUser, setSelectedUser] = useState<StaffUser | null>(null);
   const [newPassword, setNewPassword] = useState("");
 
   async function handleAddUser(e: React.FormEvent<HTMLFormElement>) {
@@ -18,10 +31,10 @@ export default function StaffManagementClient({ initialUsers }: { initialUsers: 
     setLoading(false);
 
     if (res.success) {
-      alert("✅ เพิ่มพนักงานสำเร็จ!");
+      toast.success("เพิ่มพนักงานสำเร็จ!");
       form.reset();
     } else {
-      alert("❌ " + res.error);
+      toast.error(res.error || "เกิดข้อผิดพลาด");
     }
   }
 
@@ -34,24 +47,24 @@ export default function StaffManagementClient({ initialUsers }: { initialUsers: 
     setLoading(false);
 
     if (res.success) {
-      alert(`✅ รีเซ็ตรหัสผ่านให้ "${selectedUser.name}" เรียบร้อยแล้ว เป็น: ${newPassword}`);
+      toast.success(`รีเซ็ตรหัสผ่านให้ "${selectedUser.name}" เรียบร้อยแล้ว เป็น: ${newPassword}`);
       setSelectedUser(null);
       setNewPassword("");
     } else {
-      alert("❌ " + res.error);
+      toast.error(res.error || "เกิดข้อผิดพลาด");
     }
   }
 
-  async function handleDelete(u: any) {
+  async function handleDelete(u: StaffUser) {
     if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบพนักงาน "${u.name}" (${u.phone}) ออกจากระบบ?`)) {
       return;
     }
 
     const res = await deleteUser(u.id);
     if (res.success) {
-      alert("✅ ลบพนักงานสำเร็จเรียบร้อย");
+      toast.success("ลบพนักงานสำเร็จเรียบร้อย");
     } else {
-      alert("❌ " + res.error);
+      toast.error(res.error || "เกิดข้อผิดพลาด");
     }
   }
 
@@ -67,7 +80,7 @@ export default function StaffManagementClient({ initialUsers }: { initialUsers: 
               type="text"
               name="name"
               required
-              placeholder="เช่น นายมานะ ขยันงาน"
+              placeholder="เช่น นายมานะ"
               className="w-full px-3 py-2 border rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -80,6 +93,7 @@ export default function StaffManagementClient({ initialUsers }: { initialUsers: 
               type="text"
               name="phone"
               required
+              maxLength={10}
               placeholder="08xxxxxxxx"
               className="w-full px-3 py-2 border rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500"
             />

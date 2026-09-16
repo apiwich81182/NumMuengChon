@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import RealtimeClock from "./RealtimeClock";
 import { logout } from "@/actions/auth";
 
@@ -15,6 +15,7 @@ interface NavbarProps {
 
 export default function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   if (!user || pathname === "/login") {
     return null;
@@ -54,7 +55,8 @@ export default function Navbar({ user }: NavbarProps) {
             type="button"
             onClick={async () => {
               await logout();
-              window.location.href = "/login";
+              router.push("/login");
+              router.refresh();
             }}
             className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-lg transition border border-slate-200 font-medium cursor-pointer"
           >
@@ -63,8 +65,8 @@ export default function Navbar({ user }: NavbarProps) {
         </div>
       </div>
 
-      {/* 2. แถบเมนูนำทาง (Navigation Tabs) */}
-      <nav className="max-w-6xl mx-auto px-4 flex items-center justify-around sm:justify-start sm:gap-6 overflow-x-auto text-xs sm:text-sm font-medium">
+      {/* 2. แถบเมนูนำทาง Desktop (Desktop Navigation Tabs) */}
+      <nav className="hidden sm:flex max-w-6xl mx-auto px-4 items-center justify-start gap-6 overflow-x-auto text-xs sm:text-sm font-medium">
         <Link
           href="/jobs/new"
           className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
@@ -108,7 +110,7 @@ export default function Navbar({ user }: NavbarProps) {
             <Link
               href="/admin/dashboard"
               className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
-                pathname.startsWith("/admin/dashboard")
+                pathname === "/admin/dashboard"
                   ? "text-purple-600 font-bold border-purple-600"
                   : "text-slate-600 border-transparent hover:text-slate-900"
               }`}
@@ -152,9 +154,77 @@ export default function Navbar({ user }: NavbarProps) {
               <span>👥</span>
               <span>จัดการคน</span>
             </Link>
+
+            <Link
+              href="/admin/attendance"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/attendance")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>📋</span>
+              <span>ตรวจเวลาทำงาน</span>
+            </Link>
           </>
         )}
       </nav>
+
+      {/* 3. แถบเมนูย่อยของแอดมินบนมือถือ (Mobile Admin Sub-bar) แสดงเฉพาะเมื่ออยู่ในหน้า /admin/* */}
+      {isAdmin && pathname.startsWith("/admin") && (
+        <div className="sm:hidden flex items-center gap-2 overflow-x-auto px-3 py-2 bg-purple-50/70 border-b border-purple-100 text-xs font-semibold no-scrollbar">
+          <Link
+            href="/admin/dashboard"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname === "/admin/dashboard"
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            📊 แดชบอร์ด
+          </Link>
+          <Link
+            href="/admin/reports"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname.startsWith("/admin/reports")
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            📈 รายงาน
+          </Link>
+          <Link
+            href="/admin/vehicles"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname.startsWith("/admin/vehicles")
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            🚚 จัดการรถ
+          </Link>
+          <Link
+            href="/admin/staff"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname.startsWith("/admin/staff")
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            👥 จัดการคน
+          </Link>
+          <Link
+            href="/admin/attendance"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname.startsWith("/admin/attendance")
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            📋 ตรวจเวลา
+          </Link>
+        </div>
+      )}
     </header>
   );
 }

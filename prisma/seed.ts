@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import type { PaymentMethod } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -10,7 +11,7 @@ async function main() {
     where: { role: "ADMIN" },
   });
 
-  let drivers = await prisma.user.findMany({
+  const drivers = await prisma.user.findMany({
     where: { role: "DRIVER" },
   });
 
@@ -48,7 +49,7 @@ async function main() {
 
       const price = 500 + (day % 5) * 200;
       const volume = 800 + (day % 4) * 400;
-      const paymentMethod = day % 2 === 0 ? "CASH" : "TRANSFER";
+      const paymentMethod: PaymentMethod = day % 2 === 0 ? "CASH" : "TRANSFER";
 
       // 2.1 สร้างงานสูบส้วม (Job)
       await prisma.job.create({
@@ -57,7 +58,7 @@ async function main() {
           customerPhone: phones[(day + month) % phones.length],
           price,
           volumePumped: volume,
-          paymentMethod: paymentMethod as any,
+          paymentMethod,
           isReconciled: true,
           vehicleId: vehicle.id,
           userId: mainDriver.id,

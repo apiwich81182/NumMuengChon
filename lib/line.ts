@@ -1,10 +1,35 @@
-const CATEGORY_NAMES_TH: Record<string, string> = {
-  FUEL: "ค่าน้ำมัน ⛽",
-  DISPOSAL_FEE: "ค่าจุดทิ้งของเสีย 🚽",
-  MAINTENANCE: "ค่าซ่อมบำรุง 🔧",
-  SALARY: "ค่าแรง / เงินเดือน 💼",
-  OTHER: "อื่นๆ 📦",
-};
+import { getExpenseCategoryLabel } from "@/lib/labels";
+
+type LineMessage =
+  | { type: "text"; text: string }
+  | { type: "image"; originalContentUrl: string; previewImageUrl: string };
+
+async function pushLineMessages(messages: LineMessage[], errorLabel: string) {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const targetId = process.env.LINE_ADMIN_USER_ID || process.env.LINE_ADMIN_GROUP_ID;
+
+  if (!token || !targetId) {
+    console.warn("LINE alert skipped: Missing credentials in .env");
+    return;
+  }
+
+  try {
+    const response = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ to: targetId, messages }),
+    });
+
+    if (!response.ok) {
+      console.error(`LINE Messaging API error response (${errorLabel}):`, await response.text());
+    }
+  } catch (error) {
+    console.error(`Failed to send LINE ${errorLabel} alert:`, error);
+  }
+}
 
 // -------------------------------------------------------------
 // 1. ฟังก์ชันแจ้งเตือนงานใหม่ (คงโค้ดเดิมของคุณไว้ 100%)
@@ -34,14 +59,6 @@ export async function sendLineJobAlert({
   longitude?: number | null;
   slipPhotoUrl?: string | null;
 }) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  const targetId = process.env.LINE_ADMIN_USER_ID || process.env.LINE_ADMIN_GROUP_ID;
-
-  if (!token || !targetId) {
-    console.warn("LINE alert skipped: Missing credentials in .env");
-    return;
-  }
-
   const paymentText = paymentMethod === "CASH" ? "💵 เงินสด" : "📱 เงินโอน";
   let messageText =
     `🚛 มีการส่งงานใหม่!\n` +
@@ -58,7 +75,7 @@ export async function sendLineJobAlert({
     messageText += `🗺️ แผนที่: https://maps.google.com/?q=${latitude},${longitude}\n`;
   }
 
-  const messages: any[] = [
+  const messages: LineMessage[] = [
     {
       type: "text",
       text: messageText.trim(),
@@ -74,26 +91,7 @@ export async function sendLineJobAlert({
     });
   }
 
-  try {
-    const res = await fetch("https://api.line.me/v2/bot/message/push", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        to: targetId,
-        messages,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("LINE Messaging API error response:", err);
-    }
-  } catch (error) {
-    console.error("Failed to send LINE push alert:", error);
-  }
+  await pushLineMessages(messages, "job");
 }
 
 // -------------------------------------------------------------
@@ -116,14 +114,6 @@ export async function sendLineExpenseAlert({
   slipUrl?: string | null;
   createdAt?: Date;
 }) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  const targetId = process.env.LINE_ADMIN_USER_ID || process.env.LINE_ADMIN_GROUP_ID;
-
-  if (!token || !targetId) {
-    console.warn("LINE alert skipped: Missing credentials in .env");
-    return;
-  }
-
   const now = createdAt ? new Date(createdAt) : new Date();
   const dateStr = now.toLocaleDateString("th-TH", {
     day: "numeric",
@@ -135,9 +125,9 @@ export async function sendLineExpenseAlert({
     minute: "2-digit",
   });
 
-  const catLabel = CATEGORY_NAMES_TH[category] || category;
+  const catLabel = getExpenseCategoryLabel(category);
 
-  let messageText =
+  const messageText =
     `📕 มีการบันทึกรายจ่ายใหม่!\n` +
     `----------------------------\n` +
     `💰 ยอดเงิน: ฿${amount.toLocaleString()}\n` +
@@ -147,7 +137,7 @@ export async function sendLineExpenseAlert({
     `📝 รายละเอียด: ${note || "-"}\n` +
     `🕒 เวลา: ${dateStr} ${timeStr} น.`;
 
-  const messages: any[] = [
+  const messages: LineMessage[] = [
     {
       type: "text",
       text: messageText.trim(),
@@ -163,24 +153,5 @@ export async function sendLineExpenseAlert({
     });
   }
 
-  try {
-    const res = await fetch("https://api.line.me/v2/bot/message/push", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        to: targetId,
-        messages,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("LINE Messaging API error response (Expense):", err);
-    }
-  } catch (error) {
-    console.error("Failed to send LINE expense alert:", error);
-  }
+  await pushLineMessages(messages, "expense");
 }

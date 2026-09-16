@@ -1,20 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { requireAdminPage } from "@/lib/auth";
 import StaffManagementClient from "./StaffManagementClient";
+import { getAllStaffWithJobCounts } from "@/lib/user-service";
 
 export const revalidate = 0;
 
 export default async function StaffAdminPage() {
-  const users = await prisma.user.findMany({
-    include: {
-      _count: {
-        select: {
-          jobsAsDriver1: true,
-          jobsAsDriver2: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  await requireAdminPage("/jobs");
+
+  const users = await getAllStaffWithJobCounts();
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">

@@ -2,14 +2,19 @@
 
 import { prisma } from "@/lib/prisma";
 import { uploadImageToStorage } from "@/lib/upload";
-import { getCurrentUser } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { requireUserAction, requireAdminAction } from "@/lib/auth";
 import { sendLineJobAlert } from "@/lib/line";
+import { toggleJobReconciled as toggleJobReconciledService } from "@/lib/job-service";
+import { revalidateJobs } from "@/lib/revalidation";
 
 export async function createJob(formData: FormData) {
   try {
-    const currentUser = await getCurrentUser();
-    const isAdmin = currentUser?.role === "ADMIN";
+    const auth = await requireUserAction();
+    if (!auth.success) {
+      return auth;
+    }
+    const currentUser = auth.user;
+    const isAdmin = currentUser.role === "ADMIN";
     const vehicleId = formData.get("vehicleId") as string;
     const customerName = formData.get("customerName") as string;
     const customerPhone = formData.get("customerPhone") as string;
@@ -18,8 +23,8 @@ export async function createJob(formData: FormData) {
     const price = Number(formData.get("price") || 0);
     const paymentMethod = (formData.get("paymentMethod") as "CASH" | "TRANSFER") || "CASH";
     const driver1Id = isAdmin
-      ? (formData.get("driver1Id") as string) || currentUser?.id || ""
-      : currentUser?.id || "";
+      ? (formData.get("driver1Id") as string) || currentUser.id || ""
+      : currentUser.id || "";
     const driver2Id = (formData.get("driver2Id") as string) || null;
 
     const lat = formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null;
@@ -43,11 +48,6 @@ export async function createJob(formData: FormData) {
         : Promise.resolve(null),
     ]);
 
-    
-    if (!currentUser) {
-      return { success: false, error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" };
-    }
-
     const newJob = await prisma.job.create({
       data: {
         userId: driver1Id,
@@ -57,7 +57,8 @@ export async function createJob(formData: FormData) {
         customerPhone,
         volumePumped,
         price,
-        paymentMethod: paymentMethod as any,
+        paymentMethod,
+        address,
         beforePhotoUrl,
         afterPhotoUrl,
         slipPhotoUrl,
@@ -86,12 +87,7 @@ export async function createJob(formData: FormData) {
       slipPhotoUrl: newJob.slipPhotoUrl,
     }).catch((err) => console.error("Line alert background error:", err));
 
-    revalidatePath("/jobs");
-    revalidatePath("/admin/dashboard");
-    return { success: true };
-
-    revalidatePath("/jobs");
-    revalidatePath("/admin/dashboard");
+    revalidateJobs();
     return { success: true, jobId: newJob.id };
   } catch (error) {
     console.error("Error creating job:", error);
@@ -100,25 +96,29 @@ export async function createJob(formData: FormData) {
 }
 
 // สลับสถานะการตรวจรับเงินสด (Reconcile Cash)
-export async function toggleJobReconciled(jobId: string, currentStatus: boolean) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์ตรวจรับเงิน" };
+export async function toggleJobReconciled(jobId: string, currentStatus?: boolean) {
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
+
+  if (!jobId) {
+    return { success: false, error: "ไม่พบรหัสงาน" };
   }
 
   try {
-    await prisma.job.update({
-      where: { id: jobId },
-      data: {
-        isReconciled: !currentStatus,
-        reconciledAt: !currentStatus ? new Date() : null,
-      },
-    });
+    void currentStatus;
+    const result = await toggleJobReconciledService(jobId);
+    if (!result.success) return result;
 
-    revalidatePath("/jobs");
-    revalidatePath("/admin/dashboard");
+    revalidateJobs();
     return { success: true };
   } catch {
     return { success: false, error: "เกิดข้อผิดพลาดในการอัปเดตสถานะเงินสด" };
   }
+}
+
+// Wrapper สำหรับใช้กับ <form action={...}> ใน React Server Component
+export async function toggleJobReconciledForm(formData: FormData): Promise<void> {
+  const jobId = formData.get("jobId") as string;
+  if (!jobId) return;
+  await toggleJobReconciled(jobId);
 }

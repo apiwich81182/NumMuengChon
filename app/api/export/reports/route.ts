@@ -1,42 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getDateRange, toDateFilter } from "@/lib/date-range";
+import { createCsvResponse, escapeCsv, formatDateTh, formatTimeTh } from "@/lib/csv";
+import { getExpenseCategoryLabel, getPaymentMethodLabel } from "@/lib/labels";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
-
-const EXPENSE_CATEGORY_TH: Record<string, string> = {
-  FUEL: "ค่าน้ำมัน",
-  MAINTENANCE: "ค่าซ่อมบำรุง",
-  DISPOSAL_FEE: "ค่าจุดทิ้งของเสีย",
-  SALARY: "ค่าแรง / เงินเดือน",
-  MARKETING: "ค่าการตลาด",
-  OTHER: "อื่นๆ",
-};
-
-function escapeCsv(val: any): string {
-  if (val === null || val === undefined) return '""';
-  const str = String(val).trim();
-  return `"${str.replace(/"/g, '""')}"`;
-}
-
-// แปลงเป็นวันที่แบบ พ.ศ. (เช่น 14/09/2569)
-function formatDateTh(dateInput: Date | string | number) {
-  const d = new Date(dateInput);
-  return d.toLocaleDateString("th-TH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-// แปลงเป็นเวลา (เช่น 19:14)
-function formatTimeTh(dateInput: Date | string | number) {
-  const d = new Date(dateInput);
-  return d.toLocaleTimeString("th-TH", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -50,52 +20,32 @@ export async function GET(req: NextRequest) {
     const vehicleId = searchParams.get("vehicleId") || "";
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
-    const targetYear = Number(searchParams.get("year")) || 2025;
+    const targetYear = Number(searchParams.get("year")) || new Date().getFullYear();
     const targetMonth = Number(searchParams.get("month")) || (new Date().getMonth() + 1);
 
-    const now = new Date();
-    let start: Date | null = null;
-    let end: Date | null = null;
-
-    if (period === "today") {
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    } else if (period === "weekly") {
-      start = new Date(now);
-      start.setDate(now.getDate() - 6);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(now);
-      end.setHours(23, 59, 59, 999);
-    } else if (period === "monthly" || period === "this_month") {
-      start = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0);
-      end = new Date(targetYear, targetMonth, 0, 23, 59, 59);
-    } else if (period === "yearly" || period === "this_year") {
-      start = new Date(targetYear, 0, 1, 0, 0, 0);
-      end = new Date(targetYear, 11, 31, 23, 59, 59);
-    } else if (period === "custom" && (startDateParam || endDateParam)) {
-      if (startDateParam) start = new Date(`${startDateParam}T00:00:00`);
-      if (endDateParam) end = new Date(`${endDateParam}T23:59:59`);
-    } else if (period === "all") {
-      start = null;
-      end = null;
-    }
+    const dateRange = getDateRange({
+      period,
+      startDate: startDateParam,
+      endDate: endDateParam,
+      year: targetYear,
+      month: targetMonth,
+    });
+    const dateFilter = toDateFilter(dateRange);
 
     // เงื่อนไขสำหรับ Jobs (รายรับ)
-    const jobWhere: any = {};
+    const jobWhere: Prisma.JobWhereInput = {};
     if (vehicleId) jobWhere.vehicleId = vehicleId;
-    if (start && end) {
+    if (dateFilter) {
       jobWhere.OR = [
-        { completedAt: { gte: start, lte: end } },
-        { createdAt: { gte: start, lte: end } }
+        { completedAt: dateFilter },
+        { createdAt: dateFilter },
       ];
     }
 
     // เงื่อนไขสำหรับ Expenses (รายจ่าย)
-    const expenseWhere: any = {};
+    const expenseWhere: Prisma.ExpenseWhereInput = {};
     if (vehicleId) expenseWhere.vehicleId = vehicleId;
-    if (start && end) {
-      expenseWhere.createdAt = { gte: start, lte: end };
-    }
+    if (dateFilter) expenseWhere.createdAt = dateFilter;
 
     const [jobs, expenses] = await Promise.all([
       prisma.job.findMany({
@@ -137,10 +87,10 @@ export async function GET(req: NextRequest) {
 
     const list: ReportRow[] = [];
 
-    jobs.forEach((j: any) => {
-      const pTh = j.paymentMethod === "CASH" ? "เงินสด" : "โอนผ่านบัญชี";
+    jobs.forEach((j) => {
+      const pTh = getPaymentMethodLabel(j.paymentMethod);
       // ดึงสลิปของ Job (กรณีเงินโอน)
-      const jobSlip = j.slipPhotoUrl || j.slipUrl || null;
+      const jobSlip = j.slipPhotoUrl || null;
 
       list.push({
         type: "รายรับ",
@@ -155,10 +105,10 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    expenses.forEach((e: any) => {
-      const catTh = EXPENSE_CATEGORY_TH[e.category] || e.category;
+    expenses.forEach((e) => {
+      const catTh = getExpenseCategoryLabel(e.category);
       // ดึงสลิปของ Expense
-      const expenseSlip = e.slipPhotoUrl || e.slipUrl || e.receiptUrl || null;
+      const expenseSlip = e.slipPhotoUrl || null;
 
       list.push({
         type: "รายจ่าย",
@@ -195,22 +145,11 @@ export async function GET(req: NextRequest) {
       ];
     });
 
-    const csvBody =
-      "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
-
     const fileName = `income-expense-${targetYear}.csv`;
-
-    return new Response(csvBody, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-        "Cache-Control": "no-store, no-cache",
-      },
-    });
-  } catch (error: any) {
+    return createCsvResponse(fileName, headers, rows, { "Cache-Control": "no-store, no-cache" });
+  } catch (error) {
     console.error("Export Error:", error);
-    return new NextResponse(`Error generating CSV: ${error.message}`, {
+    return new NextResponse("Error generating CSV", {
       status: 500,
     });
   }

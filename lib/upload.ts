@@ -34,3 +34,7 @@ export async function uploadImageToStorage(file: File, folder: string = "jobs") 
   console.log("[Upload สำเร็จ URL]:", publicUrlData.publicUrl);
   return publicUrlData.publicUrl;
 }
+
+export async function uploadFileToStorage(file: File, folder = "expenses") {
+  return uploadImageToStorage(file, folder);
+}

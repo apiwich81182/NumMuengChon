@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { createJob } from "@/actions/jobs";
 import imageCompression from "browser-image-compression";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { toast } from "@/components/Toast";
 
 interface Vehicle {
   id: string;
@@ -23,34 +25,31 @@ interface JobFormProps {
 export default function JobForm({ vehicles, drivers, currentUserId }: JobFormProps) {
   const [loading, setLoading] = useState(false);
   const [compressingText, setCompressingText] = useState("");
-  const [gpsStatus, setGpsStatus] = useState<string>("กำลังค้นหาพิกัด GPS...");
-  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({
-    lat: null,
-    lng: null,
-  });
+  const { coords, status: gpsStatus } = useGeolocation();
   
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setGpsStatus("✅ บันทึกพิกัด GPS เรียบร้อย");
-        },
-        (error) => {
-          console.warn("GPS error:", error.message);
-          setGpsStatus("⚠️ ไม่สามารถดึงพิกัดได้ (กรุณาเปิด Location)");
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+  // State พรีวิวรูปภาพ
+  const [beforePreview, setBeforePreview] = useState<string | null>(null);
+  const [afterPreview, setAfterPreview] = useState<string | null>(null);
+  const [slipPreview, setSlipPreview] = useState<string | null>(null);
+
+  const beforeInputRef = useRef<HTMLInputElement | null>(null);
+  const afterInputRef = useRef<HTMLInputElement | null>(null);
+  const slipInputRef = useRef<HTMLInputElement | null>(null);
+
+  function handlePhotoSelect(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setPreview: (url: string | null) => void
+  ) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreview(url);
     } else {
-      setGpsStatus("อุปกรณ์ไม่รองรับ GPS");
+      setPreview(null);
     }
-  }, []);
+  }
 
   // ฟังก์ชันย่อภาพ
   async function compressFile(file: File) {
@@ -108,11 +107,14 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
     setCompressingText("");
 
     if (res.success) {
-      alert("🎉 บันทึกส่งงานเรียบร้อยแล้ว!");
+      toast.success("บันทึกส่งงานเรียบร้อยแล้ว!");
       form.reset();
       setPaymentMethod("CASH");
+      setBeforePreview(null);
+      setAfterPreview(null);
+      setSlipPreview(null);
     } else {
-      alert("❌ เกิดข้อผิดพลาด: " + res.error);
+      toast.error(res.error ? `เกิดข้อผิดพลาด: ${res.error}` : "เกิดข้อผิดพลาดในการบันทึก");
     }
   }
 
@@ -200,10 +202,11 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรติดต่อ</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรลูกค้า</label>
         <input
           type="tel"
           name="customerPhone"
+          maxLength={10}
           placeholder="08xxxxxxxx"
           className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
         />
@@ -216,8 +219,10 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
           <input
             type="number"
             name="volumePumped"
-            defaultValue={1000}
-            required
+            defaultValue={0}
+            min={0}
+            step="any"
+            placeholder="0"
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
           />
         </div>
@@ -261,38 +266,128 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
 
         {paymentMethod === "TRANSFER" && (
           <div className="pt-3 border-t border-slate-200">
-            <label className="block text-xs font-semibold text-blue-700 mb-1">
+            <label className="block text-xs font-semibold text-blue-700 mb-1.5">
               🧾 แนบรูปสลิปการโอนเงิน
             </label>
             <input
+              ref={slipInputRef}
+              id="slipPhoto"
               type="file"
               name="slipPhoto"
               accept="image/*"
-              className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer"
+              capture="environment"
+              onChange={(e) => handlePhotoSelect(e, setSlipPreview)}
+              className="sr-only"
             />
+            {slipPreview ? (
+              <div className="relative h-32 rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={slipPreview} alt="รูปสลิป" className="w-full h-full object-contain" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSlipPreview(null);
+                    if (slipInputRef.current) slipInputRef.current.value = "";
+                  }}
+                  className="absolute top-2 right-2 px-2.5 py-1 bg-black/75 hover:bg-rose-600 text-white text-[11px] font-semibold rounded-lg transition cursor-pointer"
+                >
+                  ✕ ถ่ายใหม่
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="slipPhoto"
+                className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-blue-300 hover:border-blue-500 rounded-xl bg-blue-50/50 hover:bg-blue-100/50 cursor-pointer transition text-center min-h-[80px]"
+              >
+                <span className="text-xl mb-0.5">🧾</span>
+                <span className="text-xs font-semibold text-blue-800">แตะเพื่อถ่ายรูปสลิป</span>
+                <span className="text-[10px] text-blue-500 mt-0.5">หรือเลือกรูปจากเครื่อง</span>
+              </label>
+            )}
           </div>
         )}
       </div>
 
-      {/* ช่องถ่ายรูป */}
+      {/* ช่องถ่ายรูป (ปุ่มสัมผัสขนาดใหญ่ + พรีวิวภาพทันที) */}
       <div className="grid grid-cols-2 gap-3">
+        {/* รูปก่อนสูบ */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">📷 รูปก่อนสูบ</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">📷 รูปก่อนสูบ</label>
           <input
+            ref={beforeInputRef}
+            id="beforePhoto"
             type="file"
             name="beforePhoto"
             accept="image/*"
-            className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            capture="environment"
+            onChange={(e) => handlePhotoSelect(e, setBeforePreview)}
+            className="sr-only"
           />
+          {beforePreview ? (
+            <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={beforePreview} alt="รูปก่อนสูบ" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => {
+                  setBeforePreview(null);
+                  if (beforeInputRef.current) beforeInputRef.current.value = "";
+                }}
+                className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer"
+              >
+                ✕ ถ่ายใหม่
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="beforePhoto"
+              className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition text-center min-h-[96px]"
+            >
+              <span className="text-2xl mb-1">📷</span>
+              <span className="text-xs font-semibold text-slate-700">แตะถ่ายรูป</span>
+              <span className="text-[10px] text-slate-400 mt-0.5">ก่อนสูบ</span>
+            </label>
+          )}
         </div>
+
+        {/* รูปหลังสูบ */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">📷 รูปหลังสูบ</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">📷 รูปหลังสูบ</label>
           <input
+            ref={afterInputRef}
+            id="afterPhoto"
             type="file"
             name="afterPhoto"
             accept="image/*"
-            className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            capture="environment"
+            onChange={(e) => handlePhotoSelect(e, setAfterPreview)}
+            className="sr-only"
           />
+          {afterPreview ? (
+            <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={afterPreview} alt="รูปหลังสูบ" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => {
+                  setAfterPreview(null);
+                  if (afterInputRef.current) afterInputRef.current.value = "";
+                }}
+                className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer"
+              >
+                ✕ ถ่ายใหม่
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="afterPhoto"
+              className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition text-center min-h-[96px]"
+            >
+              <span className="text-2xl mb-1">📷</span>
+              <span className="text-xs font-semibold text-slate-700">แตะถ่ายรูป</span>
+              <span className="text-[10px] text-slate-400 mt-0.5">หลังสูบ</span>
+            </label>
+          )}
         </div>
       </div>
 

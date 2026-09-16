@@ -1,18 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { requireAdminAction } from "@/lib/auth";
 import bcrypt from "bcryptjs";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
+import { revalidateStaff, revalidateVehicles } from "@/lib/revalidation";
 
 // --- จัดการรถสูบส้วม (Vehicles) ---
 
 export async function createVehicle(formData: FormData) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "ไม่มีสิทธิ์ดำเนินการ (เฉพาะผู้ดูแลระบบ)" };
-  }
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
 
   const plateNumber = formData.get("plateNumber") as string;
   const capacity = Number(formData.get("capacity") || 0);
@@ -25,17 +23,15 @@ export async function createVehicle(formData: FormData) {
     await prisma.vehicle.create({
       data: {
         plateNumber: plateNumber.trim(),
-        capacityLiters: capacity, // <-- เปลี่ยนจาก capacity เป็น capacityLiters
+        capacityLiters: capacity,
         isActive: true,
       },
     });
 
-    revalidatePath("/admin/vehicles");
-    revalidatePath("/admin/dashboard");
-    revalidatePath("/jobs/new");
+    revalidateVehicles();
     return { success: true };
-  } catch (error: any) {
-    if (error.code === "P2002") {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "ทะเบียนรถนี้มีอยู่ในระบบแล้ว" };
     }
     return { success: false, error: "ไม่สามารถเพิ่มรถได้" };
@@ -43,10 +39,8 @@ export async function createVehicle(formData: FormData) {
 }
 
 export async function toggleVehicleStatus(id: string, currentStatus: boolean) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "ไม่มีสิทธิ์ดำเนินการ" };
-  }
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
 
   try {
     await prisma.vehicle.update({
@@ -54,8 +48,7 @@ export async function toggleVehicleStatus(id: string, currentStatus: boolean) {
       data: { isActive: !currentStatus },
     });
 
-    revalidatePath("/admin/vehicles");
-    revalidatePath("/jobs/new");
+    revalidateVehicles();
     return { success: true };
   } catch {
     return { success: false, error: "เกิดข้อผิดพลาดในการเปลี่ยนสถานะรถ" };
@@ -65,10 +58,8 @@ export async function toggleVehicleStatus(id: string, currentStatus: boolean) {
 // --- จัดการพนักงาน (Users / Staff) ---
 
 export async function createUser(formData: FormData) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "ไม่มีสิทธิ์ดำเนินการ (เฉพาะผู้ดูแลระบบ)" };
-  }
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
 
   const name = formData.get("name") as string;
   const phone = formData.get("phone") as string;
@@ -91,11 +82,10 @@ export async function createUser(formData: FormData) {
       },
     });
 
-    revalidatePath("/admin/staff");
-    revalidatePath("/jobs/new");
+    revalidateStaff();
     return { success: true };
-  } catch (error: any) {
-    if (error.code === "P2002") {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว" };
     }
     return { success: false, error: "ไม่สามารถเพิ่มพนักงานได้" };
@@ -104,10 +94,8 @@ export async function createUser(formData: FormData) {
 
 // 1. รีเซ็ตรหัสผ่านพนักงาน
 export async function resetUserPassword(userId: string, newPassword: string) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "ไม่มีสิทธิ์ดำเนินการ" };
-  }
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
 
   if (!newPassword || newPassword.trim().length < 4) {
     return { success: false, error: "รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร" };
@@ -120,22 +108,20 @@ export async function resetUserPassword(userId: string, newPassword: string) {
       data: { password: hashedPassword },
     });
 
-    revalidatePath("/admin/staff");
+    revalidateStaff();
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "ไม่สามารถรีเซ็ตรหัสผ่านได้" };
   }
 }
 
 // 2. ลบพนักงาน
 export async function deleteUser(userId: string) {
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== "ADMIN") {
-    return { success: false, error: "ไม่มีสิทธิ์ดำเนินการ" };
-  }
+  const auth = await requireAdminAction();
+  if (!auth.success) return auth;
 
   // ป้องกันไม่ให้แอดมินลบบัญชีของตัวเอง
-  if (currentUser.id === userId) {
+  if (auth.user.id === userId) {
     return { success: false, error: "ไม่สามารถลบบัญชีของตัวเองที่กำลังใช้งานอยู่ได้" };
   }
 
@@ -158,9 +144,9 @@ export async function deleteUser(userId: string) {
       where: { id: userId },
     });
 
-    revalidatePath("/admin/staff");
+    revalidateStaff();
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "เกิดข้อผิดพลาดในการลบพนักงาน" };
   }
 }

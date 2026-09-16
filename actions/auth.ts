@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { setSession, removeSession, UserSession } from "@/lib/auth";
+import { setSession, removeSession } from "@/lib/auth";
 
 // 1. ฟังก์ชัน Login
 export async function login(formData: FormData) {
@@ -36,8 +36,11 @@ export async function login(formData: FormData) {
     });
 
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || "เกิดข้อผิดพลาดในการเข้าสู่ระบบ" };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเข้าสู่ระบบ",
+    };
   }
 }
 

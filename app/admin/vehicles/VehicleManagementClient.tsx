@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 import { createVehicle, toggleVehicleStatus } from "@/actions/admin";
+import { toast } from "@/components/Toast";
 
-export default function VehicleManagementClient({ initialVehicles }: { initialVehicles: any[] }) {
+type Vehicle = {
+  id: string;
+  plateNumber: string;
+  capacityLiters: number;
+  isActive: boolean;
+  _count: { jobs: number };
+};
+
+export default function VehicleManagementClient({ initialVehicles }: { initialVehicles: Vehicle[] }) {
   const [loading, setLoading] = useState(false);
 
   async function handleAddVehicle(e: React.FormEvent<HTMLFormElement>) {
@@ -16,17 +25,21 @@ export default function VehicleManagementClient({ initialVehicles }: { initialVe
     setLoading(false);
 
     if (res.success) {
-      alert("✅ เพิ่มรถสำเร็จเรียบร้อย");
+      toast.success("เพิ่มรถสำเร็จเรียบร้อย");
       form.reset();
     } else {
-      alert("❌ " + res.error);
+      toast.error(res.error || "เกิดข้อผิดพลาด");
     }
   }
 
   async function handleToggle(id: string, currentStatus: boolean) {
     if (!confirm(`ต้องการเปลี่ยนสถานะรถคันนี้เป็น ${currentStatus ? "งดใช้งาน (ส่งซ่อม)" : "พร้อมใช้งาน"} ใช่หรือไม่?`)) return;
     const res = await toggleVehicleStatus(id, currentStatus);
-    if (!res.success) alert("❌ " + res.error);
+    if (res.success) {
+      toast.success("อัปเดตสถานะรถเรียบร้อยแล้ว");
+    } else {
+      toast.error(res.error || "เกิดข้อผิดพลาด");
+    }
   }
 
   return (

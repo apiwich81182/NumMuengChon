@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createExpense } from "@/actions/expenses";
 
 interface VehicleOption {
   id: string;
@@ -19,10 +20,22 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // สเตตหมวดหมู่และกล่องติ๊กเฉพาะแอดมิน
   const [category, setCategory] = useState("FUEL");
   const [isAdminOnly, setIsAdminOnly] = useState(false);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setSelectedFile(file);
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
+  }
 
   // เมื่อเปลี่ยนหมวดหมู่: ถ้าเป็น SALARY ให้ติ๊กถูกให้อัตโนมัติ
   function handleCategoryChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -40,55 +53,22 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
 
     try {
       const formData = new FormData(e.currentTarget);
-      const amount = parseFloat(formData.get("amount") as string);
-      const vehicleId = (formData.get("vehicleId") as string) || null;
-      const note = (formData.get("note") as string) || null;
+      formData.set("category", category);
+      formData.set("isAdminOnly", (isAdmin && isAdminOnly).toString());
 
-      let slipPhotoUrl: string | null = null;
-
-      // 1. ส่งไฟล์รูปไปยัง /api/upload
       if (selectedFile) {
-        const uploadForm = new FormData();
-        uploadForm.append("file", selectedFile);
-        uploadForm.append("folder", "expenses");
-
-        const upRes = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadForm,
-        });
-
-        if (!upRes.ok) {
-          const upErr = await upRes.json();
-          throw new Error(`อัปโหลดรูปสลิปไม่สำเร็จ: ${upErr.error || "เกิดข้อผิดพลาด"}`);
-        }
-
-        const upData = await upRes.json();
-        slipPhotoUrl = upData.url;
+        formData.set("receiptPhoto", selectedFile);
       }
 
-      // 2. บันทึกข้อมูลผ่าน /api/expenses
-      const res = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          category,
-          vehicleId,
-          note,
-          slipPhotoUrl,
-          isAdminOnly: isAdmin ? isAdminOnly : false,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "บันทึกข้อมูลไม่สำเร็จ");
+      const res = await createExpense(formData);
+      if (!res.success) {
+        throw new Error(res.error || "บันทึกข้อมูลไม่สำเร็จ");
       }
 
       router.push("/expenses");
       router.refresh();
-    } catch (err: any) {
-      setErrorMsg(err.message || "เกิดข้อผิดพลาดในการบันทึก");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก");
       setLoading(false);
     }
   }
@@ -163,15 +143,44 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              รูปใบเสร็จ / สลิป (ไม่เกิน 5MB)
+            <label className="block font-semibold text-slate-700 mb-1.5">
+              รูปใบเสร็จ / สลิป
             </label>
             <input
+              ref={fileInputRef}
+              id="receiptPhoto"
               type="file"
               accept="image/*"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+              capture="environment"
+              onChange={handleFileChange}
+              className="sr-only"
             />
+            {previewUrl ? (
+              <div className="relative h-44 rounded-xl overflow-hidden border-2 border-rose-400 bg-slate-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={previewUrl} alt="รูปใบเสร็จ" className="w-full h-full object-contain" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setPreviewUrl(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="absolute top-2 right-2 px-2.5 py-1 bg-black/75 hover:bg-rose-600 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
+                >
+                  ✕ ถ่ายใหม่
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="receiptPhoto"
+                className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 hover:border-rose-500 rounded-xl bg-slate-50 hover:bg-rose-50/40 cursor-pointer transition text-center min-h-[96px]"
+              >
+                <span className="text-2xl mb-1">📷</span>
+                <span className="text-xs font-semibold text-slate-700">แตะเพื่อถ่ายรูปใบเสร็จ / แนบสลิป</span>
+                <span className="text-[10px] text-slate-400 mt-0.5">เปิดกล้องหรือเลือกไฟล์จากเครื่อง (ไม่เกิน 5MB)</span>
+              </label>
+            )}
           </div>
 
           <div>

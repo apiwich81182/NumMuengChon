@@ -1,20 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUserPage } from "@/lib/auth";
 import AttendanceClient from "./AttendanceClient";
-import { redirect } from "next/navigation";
+import { getTodayRange } from "@/lib/date-range";
 
 export const revalidate = 0;
 
 export default async function AttendancePage() {
-  // ดึงข้อมูลผู้ใช้ที่กำลังล็อกอินอยู่จริงจาก Cookie
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireUserPage("/login");
 
-  if (!currentUser) {
-    redirect("/login");
-  }
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const { start: todayStart } = getTodayRange();
 
   // ดึงรายการบันทึกเวลาของคนที่ล็อกอินในวันนี้
   const todayRecord = await prisma.attendance.findFirst({

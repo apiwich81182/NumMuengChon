@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireAdminPage } from "@/lib/auth";
 import Link from "next/link";
+import { getDateRange, toDateFilter, toLocalDateKey } from "@/lib/date-range";
+import { Prisma } from "@prisma/client";
+import { summarizeFinances } from "@/lib/finance";
+import { THAI_MONTHS_SHORT } from "@/lib/formatters";
+import { getActiveVehicles } from "@/lib/vehicle-service";
 
 export const revalidate = 0;
 
@@ -16,24 +20,10 @@ interface PageProps {
   }>;
 }
 
-const MONTH_NAMES = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
-];
-
-// Helper แปลง Date เป็น YYYY-MM-DD ตาม Local Timezone ป้องกันปัญหา Timezone Shift
-function toLocalDateKey(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+const MONTH_NAMES = THAI_MONTHS_SHORT;
 
 export default async function AdminReportsPage({ searchParams }: PageProps) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser || currentUser.role !== "ADMIN") {
-    redirect("/admin/dashboard");
-  }
+  await requireAdminPage("/jobs");
 
   const params = await searchParams;
   const now = new Date();
@@ -44,39 +34,28 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   const startDateParam = params.startDate || "";
   const endDateParam = params.endDate || "";
 
-  let start: Date | null = null;
-  let end: Date | null = null;
-
-  // 1. คำนวณช่วงเวลา Start/End
-  if (period === "weekly") {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0);
-    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  } else if (period === "monthly") {
-    start = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0);
-    end = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
-  } else if (period === "yearly") {
-    start = new Date(targetYear, 0, 1, 0, 0, 0);
-    end = new Date(targetYear, 11, 31, 23, 59, 59, 999);
-  } else if (period === "custom" && (startDateParam || endDateParam)) {
-    if (startDateParam) start = new Date(`${startDateParam}T00:00:00`);
-    if (endDateParam) end = new Date(`${endDateParam}T23:59:59.999`);
-  }
+  const { start, end } = getDateRange({
+    period,
+    startDate: startDateParam,
+    endDate: endDateParam,
+    year: targetYear,
+    month: targetMonth,
+    now,
+  });
 
   // 2. เงื่อนไข Query ข้อมูล
-  const jobWhere: any = {};
-  const expenseWhere: any = {};
+  const dateFilter = toDateFilter({ start, end });
+  const jobWhere: Prisma.JobWhereInput = {};
+  const expenseWhere: Prisma.ExpenseWhereInput = {};
 
   if (vehicleId) {
     jobWhere.vehicleId = vehicleId;
     expenseWhere.vehicleId = vehicleId;
   }
 
-  if (start || end) {
-    const range: any = {};
-    if (start) range.gte = start;
-    if (end) range.lte = end;
-    jobWhere.completedAt = range;
-    expenseWhere.createdAt = range;
+  if (dateFilter) {
+    jobWhere.completedAt = dateFilter;
+    expenseWhere.createdAt = dateFilter;
   }
 
   const [jobs, expenses, vehicles] = await Promise.all([
@@ -99,15 +78,10 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
         createdAt: true,
       },
     }),
-    prisma.vehicle.findMany({
-      where: { isActive: true },
-      orderBy: { plateNumber: "asc" },
-    }),
+    getActiveVehicles(),
   ]);
 
-  const totalRevenue = jobs.reduce((sum, j) => sum + Number(j.price || 0), 0);
-  const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const netProfit = totalRevenue - totalExpense;
+  const { totalRevenue, totalExpense, netProfit } = summarizeFinances(jobs, expenses);
 
   // 3. จัดกลุ่มข้อมูล (Breakdown) สำหรับกราฟและตาราง
   type BreakdownItem = {

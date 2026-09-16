@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireAdminPage } from "@/lib/auth";
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
+import {
+  summarizeFinances,
+  summarizePaymentMethods,
+  summarizeExpensesByCategory,
+  calculateProfitMargin,
+} from "@/lib/finance";
+import { getDateRange, toDateFilter } from "@/lib/date-range";
+import { THAI_MONTHS_FULL } from "@/lib/formatters";
+import { getActiveDrivers } from "@/lib/user-service";
 
 export const revalidate = 0;
 
@@ -13,57 +22,33 @@ interface PageProps {
   }>;
 }
 
-const MONTH_NAMES_TH = [
-  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-];
+const MONTH_NAMES_TH = THAI_MONTHS_FULL;
 
 export default async function AdminDashboardPage({ searchParams }: PageProps) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser || currentUser.role !== "ADMIN") {
-    redirect("/jobs");
-  }
+  await requireAdminPage("/jobs");
 
   const params = await searchParams;
   const now = new Date();
-  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-  const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   const period = params.period || (!params.startDate && !params.endDate ? "today" : "custom");
   const startDate = params.startDate || "";
   const endDate = params.endDate || "";
 
-  // คำนวณช่วงเวลา Start / End
-  let start: Date | null = null;
-  let end: Date | null = null;
-
-  if (startDate || endDate) {
-    // ถ้ากรอกมาแค่วันเดียว ให้ใช้วันเดียวกันทั้งเริ่มและสิ้นสุด
-    const s = startDate || endDate;
-    const e = endDate || startDate;
-    start = new Date(`${s}T00:00:00`);
-    end = new Date(`${e}T23:59:59.999`);
-  } else if (period === "today") {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  } else if (period === "this_month") {
-    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  } else if (period === "this_year") {
-    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
-    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-  }
+  // คำนวณช่วงเวลา Start / End ผ่าน Date Range กลาง (คำนวณตามเวลาไทย Asia/Bangkok เสมอ)
+  const { start, end } = getDateRange({
+    period,
+    startDate,
+    endDate,
+    now,
+  });
 
   // เงื่อนไข Filter สำหรับ Prisma Query
-  const jobDateWhere: any = {};
-  const expenseDateWhere: any = {};
+  const dateFilter = toDateFilter({ start, end });
+  const jobDateWhere: Prisma.JobWhereInput = {};
+  const expenseDateWhere: Prisma.ExpenseWhereInput = {};
 
-  if (start || end) {
-    const range: any = {};
-    if (start) range.gte = start;
-    if (end) range.lte = end;
-
-    jobDateWhere.completedAt = range;
-    expenseDateWhere.createdAt = range;
+  if (dateFilter) {
+    jobDateWhere.completedAt = dateFilter;
+    expenseDateWhere.createdAt = dateFilter;
   }
 
   // วันและเดือนสำหรับตาราง Matrix Attendance
@@ -73,7 +58,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const attendanceDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   // Query ดึงข้อมูล
-  const [vehicles, allExpenses, jobs, drivers, attendances, monthJobs] = await Promise.all([
+  const [vehicles, allExpenses, jobs, drivers, monthJobs] = await Promise.all([
     prisma.vehicle.findMany({
       where: { isActive: true },
       include: {
@@ -96,24 +81,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         driver2: true,
       },
     }),
-    prisma.user.findMany({
-      where: { role: "DRIVER" },
-      orderBy: { name: "asc" },
-    }),
-    (prisma as any).attendance
-      ? (prisma as any).attendance
-          .findMany({
-            where: {
-              createdAt: {
-                gte: new Date(currentYear, currentMonthIdx, 1, 0, 0, 0),
-                lte: new Date(currentYear, currentMonthIdx + 1, 0, 23, 59, 59, 999),
-              },
-            },
-            include: { user: true },
-          })
-          .catch(() => [])
-      : Promise.resolve([]),
-
+    getActiveDrivers(),
     // 🌟 เพิ่ม Query นี้: ดึงเฉพาะงานของเดือนปัจจุบันทั้งเดือน (ไม่ผูกกับตัวกรองช่วงเวลาด้านบน)
     prisma.job.findMany({
       where: {
@@ -132,37 +100,15 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   ]);
 
   // สรุปยอดรวม
-  const totalRevenue = jobs.reduce((sum, j) => sum + Number(j.price || 0), 0);
+  const { totalRevenue, totalExpense, netProfit } = summarizeFinances(jobs, allExpenses);
   const totalVolume = jobs.reduce((sum, j) => sum + (j.volumePumped || 0), 0);
   const totalJobsCount = jobs.length;
   const avgVolumePerJob = totalJobsCount > 0 ? Math.round(totalVolume / totalJobsCount) : 0;
 
-  let cashRevenue = 0;
-  let transferRevenue = 0;
-  jobs.forEach((j) => {
-    if (j.paymentMethod === "CASH") cashRevenue += Number(j.price || 0);
-    else transferRevenue += Number(j.price || 0);
-  });
-
-  const totalExpense = allExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const netProfit = totalRevenue - totalExpense;
-  const profitMargin = totalRevenue > 0 ? `${((netProfit / totalRevenue) * 100).toFixed(1)}%` : "-";
-
-  // สรุป 5 หมวดหมู่ค่าใช้จ่าย
-  let catFuel = 0;
-  let catDisposal = 0;
-  let catMaintenance = 0;
-  let catSalary = 0;
-  let catOther = 0;
-
-  allExpenses.forEach((e) => {
-    const amt = Number(e.amount || 0);
-    if (e.category === "FUEL") catFuel += amt;
-    else if (e.category === "DISPOSAL_FEE") catDisposal += amt;
-    else if (e.category === "MAINTENANCE") catMaintenance += amt;
-    else if (e.category === "SALARY") catSalary += amt;
-    else catOther += amt;
-  });
+  const { cashRevenue, transferRevenue } = summarizePaymentMethods(jobs);
+  const profitMargin = calculateProfitMargin(totalRevenue, netProfit);
+  const { catFuel, catDisposal, catMaintenance, catSalary, catOther } =
+    summarizeExpensesByCategory(allExpenses);
 
   // Query Params สำหรับส่งออก CSV
   const exportParams = new URLSearchParams();

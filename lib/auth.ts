@@ -28,7 +28,7 @@ export async function decrypt(token: string): Promise<UserSession | null> {
       algorithms: ["HS256"],
     });
     return payload as unknown as UserSession;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -47,11 +47,78 @@ export async function setSession(user: UserSession) {
 }
 
 // 4. ดึงข้อมูล User ปัจจุบันจาก Cookie
+import { redirect } from "next/navigation";
+
 export async function getCurrentUser(): Promise<UserSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get("session_token")?.value;
   if (!token) return null;
   return await decrypt(token);
+}
+
+export async function requireUser(): Promise<UserSession> {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
+  }
+  return user;
+}
+
+export async function requireAdmin(): Promise<UserSession> {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") {
+    throw new Error("ไม่มีสิทธิ์ดำเนินการ (เฉพาะผู้ดูแลระบบ)");
+  }
+  return user;
+}
+
+/**
+ * Guard สำหรับ Server Actions: ตรวจสอบว่าล็อกอินหรือไม่
+ */
+export async function requireUserAction(): Promise<
+  { success: true; user: UserSession } | { success: false; error: string }
+> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { success: false, error: "กรุณาเข้าสู่ระบบก่อนทำรายการ" };
+  }
+  return { success: true, user };
+}
+
+/**
+ * Guard สำหรับ Server Actions: ตรวจสอบว่ามีสิทธิ์ Admin หรือไม่
+ */
+export async function requireAdminAction(): Promise<
+  { success: true; user: UserSession } | { success: false; error: string }
+> {
+  const auth = await requireUserAction();
+  if (!auth.success) return auth;
+  if (auth.user.role !== "ADMIN") {
+    return { success: false, error: "ไม่มีสิทธิ์ดำเนินการ (เฉพาะผู้ดูแลระบบ)" };
+  }
+  return { success: true, user: auth.user };
+}
+
+/**
+ * Guard สำหรับ Server Components: พาไปหน้า login หากยังไม่ล็อกอิน
+ */
+export async function requireUserPage(redirectUrl = "/login"): Promise<UserSession> {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(redirectUrl);
+  }
+  return user;
+}
+
+/**
+ * Guard สำหรับ Server Components: พาไปหน้าเริ่มต้นหากไม่ใช่ Admin
+ */
+export async function requireAdminPage(redirectUrl = "/jobs"): Promise<UserSession> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    redirect(redirectUrl);
+  }
+  return user;
 }
 
 // 5. ออกจากระบบ (Logout)
