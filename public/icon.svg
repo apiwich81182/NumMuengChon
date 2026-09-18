@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="50%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="tankGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <linearGradient id="dropGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect width="512" height="512" rx="120" fill="url(#bgGrad)" />
+
+  <!-- Subtle Rim Light -->
+  <rect x="4" y="4" width="504" height="504" rx="116" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.2" />
+
+  <!-- Main Graphic Group -->
+  <g filter="url(#shadow)">
+    <!-- Suction Pipe / Boom atop the tank -->
+    <path d="M 85 195 C 85 145, 140 135, 250 135 L 290 135 C 310 135, 320 145, 320 160 C 320 175, 310 185, 290 185 L 265 185 C 190 185, 135 190, 135 220" 
+          fill="none" stroke="#7dd3fc" stroke-width="18" stroke-linecap="round" />
+
+    <!-- Tank Body (Large Capacity Septic Tank) -->
+    <rect x="75" y="180" width="220" height="145" rx="42" fill="url(#tankGrad)" />
+
+    <!-- Tank Bands -->
+    <rect x="135" y="180" width="10" height="145" rx="5" fill="#94a3b8" />
+    <rect x="215" y="180" width="10" height="145" rx="5" fill="#94a3b8" />
+
+    <!-- Water / Suction Drop on Tank -->
+    <g transform="translate(175, 245) scale(1.05)">
+      <path d="M 0 -38 C 22 -12, 32 8, 32 25 C 32 45, 16 60, 0 60 C -16 60, -32 45, -32 25 C -32 8, -22 -12, 0 -38 Z" 
+            fill="url(#dropGrad)" />
+      <!-- Wave shine -->
+      <ellipse cx="9" cy="14" rx="5" ry="11" fill="#ffffff" opacity="0.65" transform="rotate(25, 9, 14)" />
+    </g>
+
+    <!-- Truck Cab Body -->
+    <path d="M 285 195 L 360 195 C 385 195, 396 210, 406 230 L 428 270 C 435 285, 438 300, 438 325 L 285 325 Z" 
+          fill="url(#tankGrad)" />
+
+    <!-- Cab Window -->
+    <path d="M 315 210 L 362 210 C 374 210, 382 216, 390 230 L 405 260 L 315 260 Z" 
+          fill="#0284c7" />
+
+    <!-- Headlight (Vibrant Amber/Gold) -->
+    <rect x="424" y="295" width="16" height="22" rx="6" fill="#fbbf24" />
+
+    <!-- Front Bumper -->
+    <rect x="420" y="322" width="22" height="14" rx="4" fill="#64748b" />
+
+    <!-- Chassis / Underbody -->
+    <rect x="90" y="322" width="335" height="20" rx="6" fill="#1e293b" />
+
+    <!-- Wheels (Dual Rear + Front) -->
+    <!-- Rear Wheel 1 -->
+    <g transform="translate(140, 345)">
+      <circle cx="0" cy="0" r="44" fill="#0f172a" />
+      <circle cx="0" cy="0" r="26" fill="#cbd5e1" />
+      <circle cx="0" cy="0" r="14" fill="#1e293b" />
+      <circle cx="0" cy="0" r="5" fill="#f8fafc" />
+    </g>
+
+    <!-- Rear Wheel 2 -->
+    <g transform="translate(230, 345)">
+      <circle cx="0" cy="0" r="44" fill="#0f172a" />
+      <circle cx="0" cy="0" r="26" fill="#cbd5e1" />
+      <circle cx="0" cy="0" r="14" fill="#1e293b" />
+      <circle cx="0" cy="0" r="5" fill="#f8fafc" />
+    </g>
+
+    <!-- Front Wheel -->
+    <g transform="translate(370, 345)">
+      <circle cx="0" cy="0" r="44" fill="#0f172a" />
+      <circle cx="0" cy="0" r="26" fill="#cbd5e1" />
+      <circle cx="0" cy="0" r="14" fill="#1e293b" />
+      <circle cx="0" cy="0" r="5" fill="#f8fafc" />
+    </g>
+  </g>
+</svg>

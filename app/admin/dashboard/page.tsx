@@ -11,6 +11,8 @@ import {
 import { getDateRange, toDateFilter, getThaiDateParts } from "@/lib/date-range";
 import { THAI_MONTHS_FULL } from "@/lib/formatters";
 import { getActiveDrivers } from "@/lib/user-service";
+import FinancialCalendar from "@/components/dashboard/FinancialCalendar";
+import { getCalendarMonthData } from "@/lib/calendar-stats";
 
 export const revalidate = 0;
 
@@ -19,6 +21,8 @@ interface PageProps {
     period?: string; // "today" | "this_month" | "this_year" | "all" | "custom"
     startDate?: string;
     endDate?: string;
+    calYear?: string;
+    calMonth?: string;
   }>;
 }
 
@@ -63,8 +67,26 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
     now,
   });
 
+  let targetCalYear = Number(params.calYear);
+  let targetCalMonth = Number(params.calMonth);
+
+  if (!targetCalYear || !targetCalMonth) {
+    const latestJob = await prisma.job.findFirst({
+      orderBy: { completedAt: "desc" },
+      select: { completedAt: true, createdAt: true },
+    });
+    if (latestJob) {
+      const latestParts = getThaiDateParts(latestJob.completedAt || latestJob.createdAt);
+      targetCalYear = latestParts.year;
+      targetCalMonth = latestParts.month;
+    } else {
+      targetCalYear = currentYear;
+      targetCalMonth = currentMonthNum;
+    }
+  }
+
   // Query ดึงข้อมูล
-  const [vehicles, allExpenses, jobs, drivers, monthJobs] = await Promise.all([
+  const [vehicles, allExpenses, jobs, drivers, monthJobs, calendarData] = await Promise.all([
     prisma.vehicle.findMany({
       where: { isActive: true },
       include: {
@@ -103,6 +125,8 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         createdAt: true,
       },
     }),
+    // 🌟 ดึงข้อมูลปฏิทินรายได้สุทธิและจำนวนงานรายวัน
+    getCalendarMonthData(targetCalYear, targetCalMonth),
   ]);
 
   // สรุปยอดรวม
@@ -162,6 +186,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </Link>
           </div>
         </div>
+
+                {/* 🌟 ปฏิทินแสดงรายได้สุทธิและจำนวนงานรายวัน (Financial & Job Calendar) */}
+        <FinancialCalendar initialData={calendarData} />
 
         {/* แถบตัวกรอง วันนี้ / เดือนนี้ / ปีนี้ / ทั้งหมด */}
         <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">

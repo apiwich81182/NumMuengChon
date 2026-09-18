@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: "ระบบจัดการรถสูบส้วม",
   description: "Waste Truck Operations & Management System",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default async function RootLayout({

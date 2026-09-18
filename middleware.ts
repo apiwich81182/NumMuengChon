@@ -23,14 +23,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 1. ถ้ายังไม่ล็อกอิน แล้วพยายามเข้าหน้าอื่นๆ (ยกเว้นหน้า /login) ให้พาไปหน้า /login
-  const isPublicRoute = pathname.startsWith("/login");
+  // 1. เส้นทางสาธารณะ (หน้าแรก Landing Page และหน้า /login)
+  const isPublicRoute = pathname === "/" || pathname.startsWith("/login");
   if (!session && !isPublicRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // 2. ถ้าล็อกอินแล้ว แต่พยายามเข้าหน้า /login ซ้ำ ให้ส่งไปหน้าเริ่มต้น
-  if (session && isPublicRoute) {
+  if (session && pathname.startsWith("/login")) {
     return NextResponse.redirect(
       new URL(session.role === "ADMIN" ? "/admin/dashboard" : "/jobs/new", request.url)
     );
