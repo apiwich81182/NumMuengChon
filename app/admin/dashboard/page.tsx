@@ -12,12 +12,14 @@ import { getDateRange, toDateFilter, getThaiDateParts } from "@/lib/date-range";
 import { THAI_MONTHS_FULL } from "@/lib/formatters";
 import { getActiveDrivers } from "@/lib/user-service";
 import FinancialCalendar from "@/components/dashboard/FinancialCalendar";
+import DashboardViewSwitcher from "@/components/dashboard/DashboardViewSwitcher";
 import { getCalendarMonthData } from "@/lib/calendar-stats";
 
 export const revalidate = 0;
 
 interface PageProps {
   searchParams: Promise<{
+    tab?: string; // "overview" | "calendar"
     period?: string; // "today" | "this_month" | "this_year" | "all" | "custom"
     startDate?: string;
     endDate?: string;
@@ -32,6 +34,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   await requireAdminPage("/jobs");
 
   const params = await searchParams;
+  const defaultTab = params.tab === "calendar" ? "calendar" : "overview";
   const now = new Date();
   const period = params.period || (!params.startDate && !params.endDate ? "today" : "custom");
   const startDate = params.startDate || "";
@@ -187,11 +190,14 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-                {/* 🌟 ปฏิทินแสดงรายได้สุทธิและจำนวนงานรายวัน (Financial & Job Calendar) */}
-        <FinancialCalendar initialData={calendarData} />
-
-        {/* แถบตัวกรอง วันนี้ / เดือนนี้ / ปีนี้ / ทั้งหมด */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        {/* 🌟 สลับมุมมอง: ภาพรวมและหน้างาน VS ปฏิทินรายได้สุทธิ */}
+        <DashboardViewSwitcher
+          defaultTab={defaultTab}
+          calendarContent={<FinancialCalendar key="calendar-view" initialData={calendarData} />}
+          overviewContent={
+            <div key="overview-view" className="space-y-5 sm:space-y-6">
+              {/* แถบตัวกรอง วันนี้ / เดือนนี้ / ปีนี้ / ทั้งหมด */}
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
           <form method="GET" className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
             {/* ปุ่มช่วงเวลาลัด */}
             <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0 no-scrollbar">
@@ -772,6 +778,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
       </div>
-    </main>
+    }
+  />
+</div>
+</main>
   );
 }
