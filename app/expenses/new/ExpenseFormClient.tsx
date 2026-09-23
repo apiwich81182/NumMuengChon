@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createExpense } from "@/actions/expenses";
 import { toast } from "@/components/Toast";
+import imageCompression from "browser-image-compression";
 
 interface VehicleOption {
   id: string;
@@ -58,7 +59,17 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
       formData.set("isAdminOnly", (isAdmin && isAdminOnly).toString());
 
       if (selectedFile) {
-        formData.set("receiptPhoto", selectedFile);
+        let fileToUpload = selectedFile;
+        try {
+          fileToUpload = await imageCompression(selectedFile, {
+            maxSizeMB: 0.6,
+            maxWidthOrHeight: 1280,
+            useWebWorker: true,
+          });
+        } catch (compErr) {
+          console.warn("Expense compression fallback:", compErr);
+        }
+        formData.set("receiptPhoto", fileToUpload, selectedFile.name);
       }
 
       const res = await createExpense(formData);
@@ -108,7 +119,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
               name="amount"
               required
               placeholder="0.00"
-              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rose-500 outline-none font-bold text-base text-slate-900"
+              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rose-500 outline-none font-bold text-base text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
@@ -121,7 +132,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
               value={category}
               onChange={handleCategoryChange}
               required
-              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none font-medium text-slate-800"
+              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none font-medium text-slate-900"
             >
               <option value="FUEL">⛽ ค่าน้ำมัน</option>
               <option value="MAINTENANCE">🔧 ค่าซ่อมบำรุง</option>
@@ -139,7 +150,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
             </label>
             <select
               name="vehicleId"
-              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none font-medium text-slate-800"
+              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none font-medium text-slate-900"
             >
               <option value="">-- ไม่ระบุ / ค่าใช้จ่ายส่วนกลาง --</option>
               {vehicles.map((v) => (
@@ -198,7 +209,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
               name="note"
               rows={2}
               placeholder="เช่น เติมน้ำมันดีเซล, ค่าแรงรายวันสมชาย"
-              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none text-slate-800"
+              className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none text-slate-900 placeholder:text-slate-400 font-medium"
             />
           </div>
 

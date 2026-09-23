@@ -166,6 +166,30 @@ export default function Navbar({ user }: NavbarProps) {
               <span>📋</span>
               <span>ตรวจเวลาทำงาน</span>
             </Link>
+
+            <Link
+              href="/admin/customers"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/customers")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>👤</span>
+              <span>ลูกค้า</span>
+            </Link>
+
+            <Link
+              href="/admin/jobs/assign"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/jobs/assign")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>📝</span>
+              <span>จ่ายงาน</span>
+            </Link>
           </>
         )}
       </nav>
@@ -222,6 +246,26 @@ export default function Navbar({ user }: NavbarProps) {
             }`}
           >
             📋 ตรวจเวลา
+          </Link>
+          <Link
+            href="/admin/customers"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname.startsWith("/admin/customers")
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            👤 ลูกค้า
+          </Link>
+          <Link
+            href="/admin/jobs/assign"
+            className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition ${
+              pathname.startsWith("/admin/jobs/assign")
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-purple-800 hover:bg-purple-100"
+            }`}
+          >
+            📝 จ่ายงาน
           </Link>
         </div>
       )}

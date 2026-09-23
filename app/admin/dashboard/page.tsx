@@ -50,7 +50,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
   // เงื่อนไข Filter สำหรับ Prisma Query
   const dateFilter = toDateFilter({ start, end });
-  const jobDateWhere: Prisma.JobWhereInput = {};
+  const jobDateWhere: Prisma.JobWhereInput = {
+    status: "COMPLETED",
+  };
   const expenseDateWhere: Prisma.ExpenseWhereInput = {};
 
   if (dateFilter) {
@@ -166,7 +168,14 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               ข้อมูลรายรับ-รายจ่าย ประสิทธิภาพงาน และการลงเวลาพนักงาน
             </p>
           </div>
-          <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+            <Link
+              href="/admin/jobs/assign"
+              className="px-2.5 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs text-center truncate flex items-center justify-center gap-1"
+            >
+              <span>📋</span>
+              <span>+ จ่ายงาน</span>
+            </Link>
             <a
               href={`/api/export/jobs?${exportParams.toString()}`}
               target="_blank"

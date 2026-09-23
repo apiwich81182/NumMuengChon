@@ -45,7 +45,9 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
 
   // 2. เงื่อนไข Query ข้อมูล
   const dateFilter = toDateFilter({ start, end });
-  const jobWhere: Prisma.JobWhereInput = {};
+  const jobWhere: Prisma.JobWhereInput = {
+    status: "COMPLETED",
+  };
   const expenseWhere: Prisma.ExpenseWhereInput = {};
 
   if (vehicleId) {

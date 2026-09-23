@@ -77,7 +77,7 @@ export async function getCalendarMonthData(
   // 2. ดึงข้อมูลแบบคู่ขนาน (Parallel Queries)
   const [monthJobs, monthExpenses, annualJobSum, annualExpenseSum] = await Promise.all([
     prisma.job.findMany({
-      where: monthJobFilter ? { completedAt: monthJobFilter } : {},
+      where: monthJobFilter ? { completedAt: monthJobFilter, status: "COMPLETED" } : { status: "COMPLETED" },
       select: {
         id: true,
         customerName: true,
@@ -102,7 +102,7 @@ export async function getCalendarMonthData(
       orderBy: { createdAt: "asc" },
     }),
     prisma.job.aggregate({
-      where: yearJobFilter ? { completedAt: yearJobFilter } : {},
+      where: yearJobFilter ? { completedAt: yearJobFilter, status: "COMPLETED" } : { status: "COMPLETED" },
       _sum: { price: true },
     }),
     prisma.expense.aggregate({

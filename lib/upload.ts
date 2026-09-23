@@ -19,7 +19,7 @@ export async function uploadImageToStorage(file: File, folder: string = "jobs") 
     .from("job-photos")
     .upload(fileName, buffer, {
       contentType: file.type || "image/jpeg",
-      upsert: true,
+      upsert: false,
     });
 
   if (error) {

@@ -65,18 +65,41 @@ model Vehicle {
   expenses       Expense[]
 }
 
+enum JobStatus {
+  ASSIGNED    // จ่ายงานแล้ว / รอดำเนินการ
+  IN_PROGRESS // กำลังเดินทาง / เริ่มงาน
+  COMPLETED   // จบงานแล้ว (สำเร็จ)
+  CANCELLED   // ยกเลิกงาน
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs      Job[]
+}
+
 model Job {
   id              String         @id @default(uuid())
+  status          JobStatus      @default(COMPLETED)
   userId          String
   driver2Id       String?
   vehicleId       String
+  customerId      String?
   customerName    String
   customerPhone   String?
   address         String?
   latitude        Float?
   longitude       Float?
-  volumePumped    Int
-  price           Decimal        @db.Decimal(10, 2)
+  volumePumped    Int            @default(0)
+  price           Decimal        @default(0) @db.Decimal(10, 2)
   paymentMethod   PaymentMethod  @default(CASH)
   paymentStatus   PaymentStatus  @default(PAID)
   isReconciled    Boolean        @default(false) // true = แอดมินตรวจรับเงินสดแล้ว
@@ -85,13 +108,16 @@ model Job {
   afterPhotoUrl   String?
   slipPhotoUrl    String?
   note            String?
-  completedAt     DateTime       @default(now())
+  appointmentDate DateTime?      // วันเวลานัดหมาย
+  assignedAt      DateTime?      @default(now())
+  completedAt     DateTime?      @default(now())
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @default(now()) @updatedAt
 
   user            User           @relation("Driver1Jobs", fields: [userId], references: [id])
   driver2         User?          @relation("Driver2Jobs", fields: [driver2Id], references: [id])
   vehicle         Vehicle        @relation(fields: [vehicleId], references: [id])
+  customer        Customer?      @relation(fields: [customerId], references: [id])
 }
 
 model Expense {

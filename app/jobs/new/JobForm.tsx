@@ -6,6 +6,7 @@ import { createJob } from "@/actions/jobs";
 import imageCompression from "browser-image-compression";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "@/components/Toast";
+import { MapPin, RotateCw, ExternalLink, Clock } from "lucide-react";
 
 interface Vehicle {
   id: string;
@@ -27,7 +28,7 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [compressingText, setCompressingText] = useState("");
-  const { coords, status: gpsStatus } = useGeolocation();
+  const { coords, status: gpsStatus, loading: gpsLoading, refreshPosition } = useGeolocation();
   
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
 
@@ -202,7 +203,7 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
           name="customerName"
           required
           placeholder="เช่น บ้านคุณสมพงษ์ / หอพัก A"
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
+          className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
         />
       </div>
 
@@ -213,7 +214,7 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
           name="customerPhone"
           maxLength={10}
           placeholder="08xxxxxxxx"
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
+          className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
         />
       </div>
 
@@ -228,7 +229,7 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             min={0}
             step="any"
             placeholder="0"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
+            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
           />
         </div>
         <div>
@@ -238,7 +239,7 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             name="price"
             placeholder="เช่น 1200"
             required
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 font-semibold"
+            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-bold"
           />
         </div>
       </div>
@@ -393,13 +394,64 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
         </div>
       </div>
 
-      {/* GPS Status */}
-      <div className="p-3 bg-slate-50 border rounded-lg text-xs text-slate-600">
-        <p className="font-medium">{gpsStatus}</p>
-        {coords.lat && (
-          <p className="text-slate-400 mt-1">
-            Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng?.toFixed(5)}
-          </p>
+      {/* GPS Status Indicator */}
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2.5 h-2.5 rounded-full ${
+                coords.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+              }`}
+            />
+            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              <span>พิกัด GPS หน้างาน</span>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => refreshPosition()}
+            disabled={gpsLoading}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+            title="กดเพื่อดึงพิกัดปัจจุบันใหม่ล่าสุดทันที"
+          >
+            <RotateCw className={`w-3 h-3 ${gpsLoading ? "animate-spin text-blue-600" : ""}`} />
+            <span>{gpsLoading ? "กำลังจับพิกัด..." : "อัปเดตพิกัดใหม่"}</span>
+          </button>
+        </div>
+
+        {coords.lat && coords.lng ? (
+          <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-700">
+              <span className="font-mono font-medium text-slate-900">
+                Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng.toFixed(5)}
+              </span>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-medium"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>เปิดดูแผนที่จริง</span>
+              </a>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-0.5">
+              {coords.timestamp && (
+                <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                  <Clock className="w-3 h-3 text-emerald-600" />
+                  ดึงพิกัดสด: {coords.timestamp.toLocaleTimeString("th-TH")} น.
+                </span>
+              )}
+              {coords.accuracy && (
+                <span className="text-slate-500">ความแม่นยำ: ±{coords.accuracy} ม.</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-amber-600 font-medium">{gpsStatus}</p>
         )}
       </div>
 
