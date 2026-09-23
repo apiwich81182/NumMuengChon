@@ -660,7 +660,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               </h2>
               <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
                 <span>สัญลักษณ์:</span>
-                <span className="flex items-center gap-1 font-semibold text-emerald-600">▪ มาทำงาน</span>
+                <span className="flex items-center gap-1 font-semibold text-emerald-600">✅ มาทำงาน</span>
                 <span className="text-[10px] text-slate-400 sm:hidden">
                   (← เลื่อนซ้ายขวาเพื่อดูวันที่ →)
                 </span>
@@ -709,14 +709,14 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
                       let symbol = "-";
                       if (hasJobWorked) {
-                        symbol = "✓";
+                        symbol = "✅";
                       }
 
                       return (
                         <td key={dayNum} className="py-2.5 px-1 text-slate-400 font-medium">
                           <span
                             className={
-                              symbol === "▪"
+                              symbol === "✅"
                                 ? "text-emerald-600 font-bold text-sm"
                                 : "text-slate-300"
                             }
