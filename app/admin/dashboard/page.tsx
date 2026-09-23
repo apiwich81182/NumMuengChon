@@ -709,7 +709,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
                       let symbol = "-";
                       if (hasJobWorked) {
-                        symbol = "▪";
+                        symbol = "✓";
                       }
 
                       return (

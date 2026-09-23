@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/actions/auth";
+import { toast } from "@/components/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,10 +19,13 @@ export default function LoginPage() {
     const res = await login(formData);
 
     if (res?.success) {
+      toast.success("เข้าสู่ระบบสำเร็จ ยินดีต้อนรับครับ");
       router.push("/jobs");
       router.refresh();
     } else {
-      setErrorMsg(res?.error || "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง");
+      const err = res?.error || "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง";
+      setErrorMsg(err);
+      toast.error(err);
       setLoading(false);
     }
   }

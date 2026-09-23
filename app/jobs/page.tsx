@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
 import Link from "next/link";
-import { toggleJobReconciledForm } from "@/actions/jobs";
+import ReconcileCashButton from "@/components/ReconcileCashButton";
 import { getDateRange, toDateFilter } from "@/lib/date-range";
 import { Prisma, PaymentMethod } from "@prisma/client";
 import Pagination from "@/components/Pagination";
@@ -643,27 +643,8 @@ export default async function JobsPage({ searchParams }: PageProps) {
                     {/* ปุ่มสำหรับเงินสด: รับเงินแล้ว / ค้างส่งเงินสด */}
                     {job.paymentMethod === "CASH" && (
                       currentUser.role === "ADMIN" ? (
-                        /* ฝั่งแอดมิน: มีปุ่มกดสลับสถานะ */
-                        <form action={toggleJobReconciledForm}>
-                          <input type="hidden" name="jobId" value={job.id} />
-                          {job.isReconciled ? (
-                            <button
-                              type="submit"
-                              className="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
-                              title="คลิกเพื่อยกเลิกสถานะรับเงิน"
-                            >
-                              ✓ รับเงินแล้ว (คลิกเพื่อยกเลิก)
-                            </button>
-                          ) : (
-                            <button
-                              type="submit"
-                              className="px-3 py-1 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer"
-                              title="คลิกเพื่อยืนยันว่ารับเงินสดแล้ว"
-                            >
-                              📥 กดรับเงินสด
-                            </button>
-                          )}
-                        </form>
+                        /* ฝั่งแอดมิน: มีปุ่มกดสลับสถานะพร้อม Toast */
+                        <ReconcileCashButton jobId={job.id} isReconciled={job.isReconciled} />
                       ) : (
                         /* ฝั่งพนักงาน: แสดงเฉพาะป้ายสถานะ ไม่สามารถคลิกได้ */
                         job.isReconciled ? (

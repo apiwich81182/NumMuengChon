@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import RealtimeClock from "./RealtimeClock";
 import { logout } from "@/actions/auth";
+import { toast } from "@/components/Toast";
 
 interface NavbarProps {
   user: {
@@ -55,6 +56,7 @@ export default function Navbar({ user }: NavbarProps) {
             type="button"
             onClick={async () => {
               await logout();
+              toast.success("ออกจากระบบเรียบร้อยแล้ว");
               router.push("/login");
               router.refresh();
             }}
