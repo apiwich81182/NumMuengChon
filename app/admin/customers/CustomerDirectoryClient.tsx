@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { saveOrUpdateCustomer, deleteCustomer } from "@/actions/customers";
+import { saveOrUpdateCustomer, deleteCustomer, getCustomerHistory } from "@/actions/customers";
 import { toast } from "@/components/Toast";
 import {
   Users,
@@ -19,6 +19,7 @@ import {
   Trash2,
   X,
   Loader2,
+  History,
 } from "lucide-react";
 
 interface CustomerItem {
@@ -34,6 +35,27 @@ interface CustomerItem {
   jobCount: number;
   lastJobDate: Date | string | null;
   lastJobPrice: number | null;
+}
+
+interface DetailedJobHistory {
+  id: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  volumePumped: number;
+  price: number;
+  paymentMethod: string;
+  status: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  beforePhotoUrl?: string | null;
+  afterPhotoUrl?: string | null;
+  slipPhotoUrl?: string | null;
+  completedAt?: Date | string | null;
+  createdAt: Date | string;
+  vehicle?: { plateNumber: string } | null;
+  user?: { name: string } | null;
+  driver2?: { name: string } | null;
 }
 
 interface CustomerDirectoryClientProps {
@@ -56,6 +78,31 @@ export default function CustomerDirectoryClient({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerItem | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // ประวัติงานของลูกค้า
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyCustomer, setHistoryCustomer] = useState<CustomerItem | null>(null);
+  const [historyJobs, setHistoryJobs] = useState<DetailedJobHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  async function openHistoryModal(customer: CustomerItem) {
+    setHistoryCustomer(customer);
+    setHistoryJobs([]);
+    setHistoryModalOpen(true);
+    setLoadingHistory(true);
+    try {
+      const res = await getCustomerHistory(customer.id);
+      if (res.success && res.jobs) {
+        setHistoryJobs(res.jobs as DetailedJobHistory[]);
+      } else {
+        toast.error(res.error || "ไม่สามารถดึงประวัติงานได้");
+      }
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการโหลดประวัติ");
+    } finally {
+      setLoadingHistory(false);
+    }
+  }
 
   // Modal form states
   const [formName, setFormName] = useState("");
@@ -170,7 +217,7 @@ export default function CustomerDirectoryClient({
             className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs transition"
           >
             <ClipboardList className="w-4 h-4" />
-            <span>จ่ายงาน (Dispatch)</span>
+            <span>จ่ายงาน</span>
           </Link>
           <button
             onClick={openCreateModal}
@@ -297,6 +344,15 @@ export default function CustomerDirectoryClient({
                   {/* Right Column: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     <button
+                      onClick={() => openHistoryModal(cust)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition cursor-pointer shadow-2xs"
+                      title="ดูประวัติการสูบส้วมของลูกค้ารายนี้"
+                    >
+                      <History className="w-3.5 h-3.5 text-purple-600" />
+                      <span>ประวัติ</span>
+                    </button>
+
+                    <button
                       onClick={() => openEditModal(cust)}
                       className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
                       title="แก้ไขข้อมูลลูกค้า"
@@ -381,6 +437,7 @@ export default function CustomerDirectoryClient({
                   required
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
+                  maxLength={10}
                   placeholder="เช่น 0812345678"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
                 />
@@ -465,6 +522,179 @@ export default function CustomerDirectoryClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: ประวัติงานของลูกค้า (Full Service History) */}
+      {historyModalOpen && historyCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                    {historyCustomer.name}
+                  </h3>
+                  <span className="text-xs px-2.5 py-0.5 bg-purple-100 text-purple-700 font-bold rounded-full">
+                    {historyJobs.length} งาน
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 flex-wrap">
+                  <span className="flex items-center gap-1 font-mono text-slate-700 font-semibold">
+                    <Phone className="w-3 h-3 text-slate-400" />
+                    {historyCustomer.phone}
+                  </span>
+                  {historyCustomer.address && (
+                    <span className="flex items-center gap-1">
+                      • <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                      <span className="line-clamp-1">{historyCustomer.address}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-3 flex-1">
+              {loadingHistory ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                  <span className="text-xs">กำลังดึงข้อมูลประวัติงาน...</span>
+                </div>
+              ) : historyJobs.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">
+                  ยังไม่มีประวัติการสูบส้วมสำหรับลูกค้ารายนี้
+                </div>
+              ) : (
+                historyJobs.map((j, idx) => {
+                  const jobDate = j.completedAt ? new Date(j.completedAt) : new Date(j.createdAt);
+                  return (
+                    <div
+                      key={j.id}
+                      className="bg-slate-50/90 hover:bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 sm:p-4 space-y-2 transition"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-slate-900">
+                              ครั้งที่ {historyJobs.length - idx}: {jobDate.toLocaleDateString("th-TH", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-mono">
+                              {jobDate.toLocaleTimeString("th-TH", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })} น.
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap pt-0.5">
+                            {j.vehicle && (
+                              <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-medium">
+                                รถ: {j.vehicle.plateNumber}
+                              </span>
+                            )}
+                            {j.user && (
+                              <span>
+                                คนขับ: <strong className="text-slate-700">{j.user.name}</strong>
+                                {j.driver2 ? `, ${j.driver2.name}` : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="text-sm sm:text-base font-bold text-emerald-600 font-mono">
+                            ฿{Number(j.price || 0).toLocaleString()}
+                          </div>
+                          <span className="text-[10px] text-slate-500">
+                            {j.paymentMethod === "CASH" ? "💵 เงินสด" : "📱 เงินโอน"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {j.volumePumped > 0 && (
+                        <div className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-100 flex items-center justify-between">
+                          <span>ปริมาณที่สูบ:</span>
+                          <span className="font-semibold text-slate-800">
+                            {j.volumePumped.toLocaleString()} ลิตร
+                          </span>
+                        </div>
+                      )}
+
+                      {/* รูปภาพหลักฐาน (ก่อน, หลัง, สลิป) */}
+                      <div className="flex items-center gap-2 pt-1 text-xs flex-wrap">
+                        {j.beforePhotoUrl && (
+                          <a
+                            href={j.beforePhotoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition font-medium"
+                          >
+                            ดูรูปก่อนสูบ
+                          </a>
+                        )}
+                        {j.afterPhotoUrl && (
+                          <a
+                            href={j.afterPhotoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition font-medium"
+                          >
+                            ดูรูปหลังสูบ
+                          </a>
+                        )}
+                        {j.slipPhotoUrl && (
+                          <a
+                            href={j.slipPhotoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded hover:bg-purple-100 transition font-medium"
+                          >
+                            ดูรูปสลิป
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-slate-600">
+                ยอดรวมตลอดการใช้บริการ:{" "}
+                <strong className="text-emerald-700 text-sm font-mono">
+                  ฿{historyJobs.reduce((sum, j) => sum + Number(j.price || 0), 0).toLocaleString()}
+                </strong>
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Link
+                  href={`/admin/jobs/assign?phone=${encodeURIComponent(historyCustomer.phone)}`}
+                  className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center gap-1.5"
+                >
+                  <span>📋 จ่ายงานลูกค้าคนนี้</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setHistoryModalOpen(false)}
+                  className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-medium transition cursor-pointer"
+                >
+                  ปิด
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

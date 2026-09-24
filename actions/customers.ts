@@ -263,4 +263,71 @@ export async function deleteCustomer(id: string) {
   }
 }
 
+/**
+ * ดึงประวัติการให้บริการทั้งหมดของลูกค้าคนนั้น (เฉพาะแอดมิน)
+ */
+export async function getCustomerHistory(customerId: string) {
+  try {
+    const auth = await requireAdminAction();
+    if (!auth.success) return { success: false, error: auth.error };
+
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      return { success: false, error: "ไม่พบข้อมูลลูกค้าในระบบ" };
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        OR: [
+          { customerId: customer.id },
+          { customerPhone: customer.phone },
+        ],
+      },
+      include: {
+        vehicle: { select: { plateNumber: true } },
+        user: { select: { name: true } },
+        driver2: { select: { name: true } },
+      },
+      orderBy: [
+        { completedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+    });
+
+    const mappedJobs = jobs.map((j) => ({
+      id: j.id,
+      customerName: j.customerName,
+      customerPhone: j.customerPhone,
+      volumePumped: j.volumePumped,
+      price: Number(j.price),
+      paymentMethod: j.paymentMethod,
+      status: j.status,
+      address: j.address,
+      latitude: j.latitude,
+      longitude: j.longitude,
+      beforePhotoUrl: j.beforePhotoUrl,
+      afterPhotoUrl: j.afterPhotoUrl,
+      slipPhotoUrl: j.slipPhotoUrl,
+      completedAt: j.completedAt,
+      createdAt: j.createdAt,
+      vehicle: j.vehicle,
+      user: j.user,
+      driver2: j.driver2,
+    }));
+
+    return {
+      success: true,
+      customer,
+      jobs: mappedJobs,
+    };
+  } catch (error) {
+    console.error("Error getting customer history:", error);
+    return { success: false, error: "เกิดข้อผิดพลาดในการดึงประวัติลูกค้า" };
+  }
+}
+
+
 

@@ -38,9 +38,6 @@ export default async function AssignJobPage({ searchParams }: PageProps) {
             <div>
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <span>📋 มอบหมายงานใหม่</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-                  Dispatch
-                </span>
               </h1>
               <p className="text-sm text-slate-500">
                 จ่ายงานให้คนขับ ค้นหาประวัติลูกค้าเก่าอัตโนมัติจากเบอร์โทรศัพท์

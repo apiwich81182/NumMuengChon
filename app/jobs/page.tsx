@@ -22,6 +22,7 @@ export const revalidate = 0;
 
 interface PageProps {
   searchParams: Promise<{
+    tab?: string; // "all" | "assigned" | "completed"
     period?: string; // "today" | "this_month" | "this_year" | "all" | "custom"
     vehicleId?: string;
     userId?: string;
@@ -37,6 +38,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
   const currentUser = await requireUserPage("/login");
 
   const params = await searchParams;
+  const statusTab = params.tab || "all";
   const now = new Date();
   const period = params.period || (!params.startDate && !params.endDate ? "all" : "custom");
   const selectedVehicleId = params.vehicleId || "";
@@ -142,8 +144,22 @@ export default async function JobsPage({ searchParams }: PageProps) {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalJobs);
 
+  const getTabUrl = (tabName: string) => {
+    const p = new URLSearchParams();
+    if (tabName !== "all") p.set("tab", tabName);
+    if (period && period !== "all") p.set("period", period);
+    if (selectedVehicleId) p.set("vehicleId", selectedVehicleId);
+    if (selectedUserId) p.set("userId", selectedUserId);
+    if (selectedPaymentMethod !== "ALL") p.set("paymentMethod", selectedPaymentMethod);
+    if (selectedSort !== "desc") p.set("sort", selectedSort);
+    if (startDateParam) p.set("startDate", startDateParam);
+    if (endDateParam) p.set("endDate", endDateParam);
+    return `/jobs?${p.toString()}`;
+  };
+
   const getPageUrl = (pageNumber: number) => {
     const p = new URLSearchParams();
+    if (statusTab !== "all") p.set("tab", statusTab);
     if (period) p.set("period", period);
     if (selectedVehicleId) p.set("vehicleId", selectedVehicleId);
     if (selectedUserId) p.set("userId", selectedUserId);
@@ -174,7 +190,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
                 href="/admin/jobs/assign"
                 className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm flex items-center gap-1.5"
               >
-                <span>📋 จ่ายงาน (Dispatch)</span>
+                <span>📋 จ่ายงาน</span>
               </Link>
             )}
             <Link
@@ -186,23 +202,96 @@ export default async function JobsPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        {/* ส่วนงานที่ได้รับมอบหมาย (Assigned Jobs Section) */}
-        {assignedJobs.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 border border-blue-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
-                </span>
-                <h2 className="text-base font-bold text-slate-900">
-                  งานที่ได้รับมอบหมายรอเริ่มงาน ({assignedJobs.length} งาน)
-                </h2>
-              </div>
-              <span className="text-xs font-semibold text-blue-700 bg-white px-2.5 py-1 rounded-full border border-blue-200 shadow-2xs">
-                รอดำเนินการ
+        {/* แถบสลับดูสถานะงาน (Status Filter Tabs) */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 rounded-2xl w-fit text-xs sm:text-sm font-semibold">
+          <Link
+            href={getTabUrl("all")}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+              statusTab === "all"
+                ? "bg-white text-slate-900 shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span>ทั้งหมด</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {assignedJobs.length + totalJobs}
+            </span>
+          </Link>
+
+          <Link
+            href={getTabUrl("assigned")}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+              statusTab === "assigned"
+                ? "bg-blue-600 text-white shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {assignedJobs.length > 0 && (
+              <span className="relative flex h-2 w-2">
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    statusTab === "assigned" ? "bg-white" : "bg-blue-500"
+                  }`}
+                ></span>
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    statusTab === "assigned" ? "bg-white" : "bg-blue-600"
+                  }`}
+                ></span>
               </span>
-            </div>
+            )}
+            <span>รอดำเนินการ</span>
+            <span
+              className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold ${
+                statusTab === "assigned"
+                  ? "bg-white/20 text-white"
+                  : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {assignedJobs.length}
+            </span>
+          </Link>
+
+          <Link
+            href={getTabUrl("completed")}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition whitespace-nowrap flex items-center gap-1.5 ${
+              statusTab === "completed"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span>เสร็จสิ้นแล้ว</span>
+            <span
+              className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold ${
+                statusTab === "completed"
+                  ? "bg-white/20 text-white"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {totalJobs}
+            </span>
+          </Link>
+        </div>
+
+        {/* ส่วนงานที่ได้รับมอบหมาย (Assigned Jobs Section) */}
+        {statusTab !== "completed" && (
+          <>
+            {assignedJobs.length > 0 ? (
+              <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 border border-blue-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-3 w-3 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+                    </span>
+                    <h2 className="text-base font-bold text-slate-900">
+                      งานที่ได้รับมอบหมายรอเริ่มงาน ({assignedJobs.length} งาน)
+                    </h2>
+                  </div>
+                  <span className="text-xs font-semibold text-blue-700 bg-white px-2.5 py-1 rounded-full border border-blue-200 shadow-2xs">
+                    รอดำเนินการ
+                  </span>
+                </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {assignedJobs.map((aj) => {
@@ -337,11 +426,27 @@ export default async function JobsPage({ searchParams }: PageProps) {
               })}
             </div>
           </div>
-        )}
+        ) : statusTab === "assigned" ? (
+          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 sm:p-12 text-center space-y-2">
+            <div className="text-3xl">🎉</div>
+            <h3 className="font-bold text-slate-800 text-base">ไม่มีงานที่ได้รับมอบหมายค้างอยู่</h3>
+            <p className="text-xs text-slate-500">
+              คนขับดำเนินการเสร็จสิ้นทุกงานแล้ว หรือยังไม่มีการจ่ายงานใหม่ในขณะนี้
+            </p>
+          </div>
+        ) : null}
+      </>
+    )}
 
+    {/* ประวัติงานที่เสร็จแล้ว (แสดงเมื่อเลือก ทั้งหมด หรือ เสร็จสิ้นแล้ว) */}
+    {statusTab !== "assigned" && (
+      <>
         {/* แถบตัวกรอง (Collapsible on Mobile) */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
           <form method="GET" action="/jobs" className="space-y-3 text-xs">
+            {/* ซ่อนค่า Tab ปัจจุบันไว้ในฟอร์ม */}
+            {statusTab !== "all" && <input type="hidden" name="tab" value={statusTab} />}
+
             {/* แถวบน: ปุ่มลัดช่วงเวลา (เห็นตลอดทั้งบนมือถือและคอม) */}
             <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 no-scrollbar">
               <div className="flex items-center gap-1.5 flex-nowrap">
@@ -356,8 +461,10 @@ export default async function JobsPage({ searchParams }: PageProps) {
                     <Link
                       key={item.id}
                       href={`/jobs?period=${item.id}${
-                        selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""
-                      }${selectedUserId ? `&userId=${selectedUserId}` : ""}${
+                        statusTab !== "all" ? `&tab=${statusTab}` : ""
+                      }${selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""}${
+                        selectedUserId ? `&userId=${selectedUserId}` : ""
+                      }${
                         selectedPaymentMethod !== "ALL" ? `&paymentMethod=${selectedPaymentMethod}` : ""
                       }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
                       className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-semibold transition whitespace-nowrap ${
@@ -679,6 +786,8 @@ export default async function JobsPage({ searchParams }: PageProps) {
           endIndex={endIndex}
           buildPageUrl={getPageUrl}
         />
+      </>
+    )}
       </div>
     </main>
   );

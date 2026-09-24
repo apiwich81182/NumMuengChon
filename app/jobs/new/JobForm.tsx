@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createJob } from "@/actions/jobs";
 import imageCompression from "browser-image-compression";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "@/components/Toast";
-import { MapPin, RotateCw, ExternalLink, Clock } from "lucide-react";
+import { MapPin, RotateCw, ExternalLink, Clock, Phone, Loader2, Sparkles } from "lucide-react";
 
 interface Vehicle {
   id: string;
@@ -24,12 +24,77 @@ interface JobFormProps {
   currentUserId?: string;
 }
 
+interface CustomerJobHistory {
+  id: string;
+  createdAt: string | Date;
+  price: number;
+  volumePumped: number;
+  vehicle: { plateNumber: string };
+}
+
+interface FoundCustomer {
+  id?: string | null;
+  phone: string;
+  name: string;
+  address?: string | null;
+  jobs?: CustomerJobHistory[];
+}
+
 export default function JobForm({ vehicles, drivers, currentUserId }: JobFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [compressingText, setCompressingText] = useState("");
   const { coords, status: gpsStatus, loading: gpsLoading, refreshPosition } = useGeolocation();
   
+  // ข้อมูลลูกค้า และ Auto-lookup
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [address, setAddress] = useState("");
+  const [isSearchingPhone, setIsSearchingPhone] = useState(false);
+  const [foundCustomer, setFoundCustomer] = useState<FoundCustomer | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ค้นหาประวัติลูกค้าเก่าอัตโนมัติเมื่อพิมพ์เบอร์โทร
+  useEffect(() => {
+    const cleaned = customerPhone.trim().replace(/[\s-]/g, "");
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (cleaned.length < 9) {
+      setFoundCustomer(null);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearchingPhone(true);
+      try {
+        const res = await fetch(`/api/customers/lookup?phone=${encodeURIComponent(cleaned)}`);
+        const data = await res.json();
+        if (data.success && data.customer) {
+          const cust = data.customer as FoundCustomer;
+          setFoundCustomer(cust);
+          if (cust.name) {
+            setCustomerName(cust.name);
+          }
+          if (cust.address) {
+            setAddress(cust.address || "");
+          }
+        } else {
+          setFoundCustomer(null);
+        }
+      } catch (err) {
+        console.error("Error looking up customer:", err);
+      } finally {
+        setIsSearchingPhone(false);
+      }
+    }, 400);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [customerPhone]);
+
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
 
   // State พรีวิวรูปภาพ
@@ -196,26 +261,82 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
       </div>
 
       {/* ข้อมูลลูกค้า */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อลูกค้า / หน้างาน</label>
-        <input
-          type="text"
-          name="customerName"
-          required
-          placeholder="เช่น บ้านคุณสมพงษ์ / หอพัก A"
-          className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
-        />
-      </div>
+      <div className="space-y-3.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-blue-600" />
+              <span>เบอร์โทรลูกค้า</span>
+            </span>
+            {isSearchingPhone && (
+              <span className="text-[11px] text-blue-600 flex items-center gap-1 font-normal">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                กำลังค้นหาประวัติ...
+              </span>
+            )}
+          </label>
+          <div className="relative">
+            <input
+              type="tel"
+              name="customerPhone"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              maxLength={10}
+              placeholder="08xxxxxxxx (พิมพ์เพื่อค้นหาลูกค้าเก่าอัตโนมัติ)"
+              className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+            />
+          </div>
+        </div>
 
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรลูกค้า</label>
-        <input
-          type="tel"
-          name="customerPhone"
-          maxLength={10}
-          placeholder="08xxxxxxxx"
-          className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
-        />
+        {/* แจ้งเตือนเมื่อพบข้อมูลลูกค้าเก่า */}
+        {foundCustomer && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-xs text-emerald-800 animate-in fade-in duration-200">
+            <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>พบข้อมูลลูกค้าเดิม: {foundCustomer.name}</span>
+            </div>
+            {foundCustomer.jobs && foundCustomer.jobs.length > 0 && (
+              <div className="text-[11px] text-emerald-700 space-y-0.5 pt-0.5 border-t border-emerald-200/60">
+                <p>
+                  เคยใช้บริการ <span className="font-semibold">{foundCustomer.jobs.length} ครั้ง</span>
+                  {foundCustomer.jobs[0].price ? ` | ล่าสุด: ฿${foundCustomer.jobs[0].price.toLocaleString()}` : ""}
+                  {foundCustomer.jobs[0].volumePumped ? ` (${foundCustomer.jobs[0].volumePumped.toLocaleString()} ลิตร)` : ""}
+                  {foundCustomer.jobs[0].vehicle?.plateNumber ? ` ทะเบียน ${foundCustomer.jobs[0].vehicle.plateNumber}` : ""}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            ชื่อลูกค้า / หน้างาน <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="customerName"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            required
+            placeholder="เช่น บ้านคุณสมพงษ์ / หอพัก A"
+            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+            <span>ที่อยู่ / จุดสังเกตหน้างาน</span>
+            <span className="text-xs text-slate-400 font-normal">(ไม่บังคับ)</span>
+          </label>
+          <input
+            type="text"
+            name="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="เช่น บ้านเลขที่ 12/3 ซอย 5 หรือ ข้างวัดคลองสอง"
+            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+          />
+        </div>
       </div>
 
       {/* ปริมาณและราคา */}

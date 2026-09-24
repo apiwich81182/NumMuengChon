@@ -91,7 +91,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   }
 
   // Query ดึงข้อมูล
-  const [vehicles, allExpenses, jobs, drivers, monthJobs, calendarData] = await Promise.all([
+  const [vehicles, allExpenses, jobs, drivers, monthJobs, calendarData, pendingAssignedCount] = await Promise.all([
     prisma.vehicle.findMany({
       where: { isActive: true },
       include: {
@@ -132,6 +132,10 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
     }),
     // 🌟 ดึงข้อมูลปฏิทินรายได้สุทธิและจำนวนงานรายวัน
     getCalendarMonthData(targetCalYear, targetCalMonth),
+    // 🌟 นับจำนวนงานที่มอบหมายรอเริ่มงาน (ASSIGNED)
+    prisma.job.count({
+      where: { status: "ASSIGNED" },
+    }),
   ]);
 
   // สรุปยอดรวม
@@ -258,6 +262,37 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </div>
           </form>
         </div>
+
+        {/* แถบแจ้งเตือนงานที่จ่ายแล้ว รอดำเนินการ */}
+        {pendingAssignedCount > 0 && (
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 rounded-2xl p-4 sm:p-5 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-xl shrink-0">
+                📋
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-base sm:text-lg">
+                    มีงานที่จ่ายแล้วรอดำเนินการ {pendingAssignedCount} งาน
+                  </span>
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+                  </span>
+                </div>
+                <p className="text-xs text-blue-100 mt-0.5">
+                  งานที่จ่ายให้คนขับแล้วและกำลังรอดำเนินการจบงานในระบบ
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/jobs?tab=assigned"
+              className="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs sm:text-sm rounded-xl transition shadow-xs whitespace-nowrap self-stretch sm:self-auto text-center"
+            >
+              ดูคิวงานรอดำเนินการ ➔
+            </Link>
+          </div>
+        )}
 
         {/* 1. บัตรสรุปผล 4 ใบ (บนมือถือแสดง 2 คอลัมน์กะทัดรัด) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

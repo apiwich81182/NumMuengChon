@@ -134,42 +134,6 @@ export default function Navbar({ user }: NavbarProps) {
             </Link>
 
             <Link
-              href="/admin/vehicles"
-              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
-                pathname.startsWith("/admin/vehicles")
-                  ? "text-purple-600 font-bold border-purple-600"
-                  : "text-slate-600 border-transparent hover:text-slate-900"
-              }`}
-            >
-              <span>🚚</span>
-              <span>จัดการรถ</span>
-            </Link>
-
-            <Link
-              href="/admin/staff"
-              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
-                pathname.startsWith("/admin/staff")
-                  ? "text-purple-600 font-bold border-purple-600"
-                  : "text-slate-600 border-transparent hover:text-slate-900"
-              }`}
-            >
-              <span>👥</span>
-              <span>จัดการคน</span>
-            </Link>
-
-            <Link
-              href="/admin/attendance"
-              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
-                pathname.startsWith("/admin/attendance")
-                  ? "text-purple-600 font-bold border-purple-600"
-                  : "text-slate-600 border-transparent hover:text-slate-900"
-              }`}
-            >
-              <span>📋</span>
-              <span>ตรวจเวลาทำงาน</span>
-            </Link>
-
-            <Link
               href="/admin/customers"
               className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
                 pathname.startsWith("/admin/customers")
@@ -192,6 +156,42 @@ export default function Navbar({ user }: NavbarProps) {
               <span>📝</span>
               <span>จ่ายงาน</span>
             </Link>
+
+            <Link
+              href="/admin/attendance"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/attendance")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>📋</span>
+              <span>ตรวจเวลาทำงาน</span>
+            </Link>
+
+            <Link
+              href="/admin/vehicles"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/vehicles")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>🚚</span>
+              <span>จัดการรถ</span>
+            </Link>
+
+            <Link
+              href="/admin/staff"
+              className={`flex items-center gap-1.5 py-2.5 px-2 border-b-2 transition whitespace-nowrap ${
+                pathname.startsWith("/admin/staff")
+                  ? "text-purple-600 font-bold border-purple-600"
+                  : "text-slate-600 border-transparent hover:text-slate-900"
+              }`}
+            >
+              <span>👥</span>
+              <span>จัดการคน</span>
+            </Link>         
           </>
         )}
       </nav>
