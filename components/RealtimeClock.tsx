@@ -43,11 +43,8 @@ export default function RealtimeClock() {
 
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/80 hover:bg-slate-100 border border-slate-200/70 rounded-lg text-slate-700 font-mono text-xs shadow-sm transition">
-      <span className="text-slate-400 font-sans hidden sm:inline">{dateStr}</span>
-      <span className="text-slate-300 hidden sm:inline">•</span>
-      <span className="font-bold text-slate-800 tracking-wider">
-        🕒 {timeStr}
-      </span>
+      <span className="text-black font-sans hidden sm:inline">{dateStr}</span>
+      <span className="text-black tracking-wider">🕒 {timeStr}</span>
     </div>
   );
 }

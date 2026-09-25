@@ -12,11 +12,15 @@ export default async function NewJobPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-100 py-6 px-4">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-slate-800">🚛 บันทึกส่งงานสูบส้วม</h1>
-          <p className="text-sm text-slate-500">กรอกข้อมูลและบันทึกพิกัดหลังเสร็จงาน</p>
+    <main className="min-h-screen bg-slate-50 py-6 sm:py-8 px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-7 border border-slate-200/80">
+        <div className="mb-6 pb-4 border-b border-slate-100">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <span>🚛 บันทึกส่งงานสูบส้วม</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            กรอกข้อมูลการให้บริการ ตรวจสอบพิกัด และบันทึกจบงานทันที
+          </p>
         </div>
 
         <JobForm vehicles={vehicles} drivers={drivers} currentUserId={currentUser?.id} />

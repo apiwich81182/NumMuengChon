@@ -54,7 +54,7 @@ export default function BottomNav({ user }: BottomNavProps) {
   return (
     <nav
       aria-label="เมนูหลักบนมือถือ"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] sm:hidden pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] lg:hidden pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex items-stretch justify-around px-1 h-14">
         {navItems.map((item) => (

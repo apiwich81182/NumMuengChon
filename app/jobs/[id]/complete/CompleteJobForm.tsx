@@ -180,9 +180,12 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
       : null;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* ข้อมูลคำสั่งงานจากแอดมิน (Admin instructions banner) */}
-      <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs space-y-2">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* คอลัมน์ซ้าย: ข้อมูลคำสั่งงาน ข้อมูลลูกค้า ยอดเงิน วิธีชำระ และหมายเหตุ */}
+        <div className="space-y-4">
+          {/* ข้อมูลคำสั่งงานจากแอดมิน (Admin instructions banner) */}
+          <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs space-y-2">
         <div className="flex items-center justify-between text-blue-900 font-semibold">
           <span className="flex items-center gap-1.5">
             <User className="w-4 h-4 text-blue-600" />
@@ -191,6 +194,10 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
           {job.appointmentDate && (
             <span className="flex items-center gap-1 text-blue-700 bg-white/80 px-2 py-0.5 rounded-md border border-blue-200">
               <Clock className="w-3 h-3" />
+              {new Date(job.appointmentDate).toLocaleDateString("th-TH", {
+                day: "numeric",
+                month: "short",
+              })}{" "}
               {new Date(job.appointmentDate).toLocaleTimeString("th-TH", {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -368,209 +375,216 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
         </div>
       </div>
 
-      {/* อัปโหลดรูปภาพ 3 จุด (ก่อนสูบ, หลังสูบ, สลิป) */}
-      <div className="space-y-3 pt-2">
-        <label className="block text-xs font-semibold text-slate-700">
-          หลักฐานภาพถ่าย (กดเพื่อถ่ายภาพหรือเลือกไฟล์)
-        </label>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* รูปก่อนสูบ */}
+          {/* หมายเหตุเพิ่มเติม */}
           <div>
-            <span className="block text-[11px] text-slate-500 mb-1">1. รูปก่อนสูบ</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
+              <span>หมายเหตุเพิ่มเติมหลังจบงาน</span>
+            </label>
             <input
-              type="file"
-              name="beforePhoto"
-              accept="image/*"
-              ref={beforeInputRef}
-              onChange={(e) => handlePhotoSelect(e, setBeforePreview)}
-              className="hidden"
+              type="text"
+              name="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="เช่น ดูดเสร็จเรียบร้อย ลูกค้าพึงพอใจมาก"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
-            <div
-              onClick={() => beforeInputRef.current?.click()}
-              className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
-            >
-              {beforePreview ? (
-                <Image
-                  src={beforePreview}
-                  alt="Before"
-                  fill
-                  className="object-cover rounded-xl"
-                  unoptimized
-                />
-              ) : (
-                <div className="text-center text-slate-400">
-                  <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
-                  <span className="text-[11px]">ถ่ายรูปก่อน</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* รูปหลังสูบ */}
-          <div>
-            <span className="block text-[11px] text-slate-500 mb-1">2. รูปหลังสูบ</span>
-            <input
-              type="file"
-              name="afterPhoto"
-              accept="image/*"
-              ref={afterInputRef}
-              onChange={(e) => handlePhotoSelect(e, setAfterPreview)}
-              className="hidden"
-            />
-            <div
-              onClick={() => afterInputRef.current?.click()}
-              className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
-            >
-              {afterPreview ? (
-                <Image
-                  src={afterPreview}
-                  alt="After"
-                  fill
-                  className="object-cover rounded-xl"
-                  unoptimized
-                />
-              ) : (
-                <div className="text-center text-slate-400">
-                  <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
-                  <span className="text-[11px]">ถ่ายรูปหลัง</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* รูปสลิปโอนเงิน (ถ้าเลือกโอน) */}
-        {paymentMethod === "TRANSFER" && (
-          <div>
-            <span className="block text-[11px] text-slate-500 mb-1">3. สลิปโอนเงิน</span>
-            <input
-              type="file"
-              name="slipPhoto"
-              accept="image/*"
-              ref={slipInputRef}
-              onChange={(e) => handlePhotoSelect(e, setSlipPreview)}
-              className="hidden"
-            />
-            <div
-              onClick={() => slipInputRef.current?.click()}
-              className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
-            >
-              {slipPreview ? (
-                <Image
-                  src={slipPreview}
-                  alt="Slip"
-                  fill
-                  className="object-cover rounded-xl"
-                  unoptimized
-                />
-              ) : (
-                <div className="text-center text-slate-400">
-                  <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
-                  <span className="text-[11px]">แนบสลิปโอนเงิน</span>
+        {/* คอลัมน์ขวา: หลักฐานภาพถ่าย พิกัด GPS และปุ่มกดยืนยันจบงาน */}
+        <div className="space-y-4 flex flex-col justify-between h-full">
+          <div className="space-y-4">
+            {/* อัปโหลดรูปภาพ 3 จุด (ก่อนสูบ, หลังสูบ, สลิป) */}
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-slate-700">
+                หลักฐานภาพถ่าย (กดเพื่อถ่ายภาพหรือเลือกไฟล์)
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* รูปก่อนสูบ */}
+                <div>
+                  <span className="block text-[11px] text-slate-500 mb-1">1. รูปก่อนสูบ</span>
+                  <input
+                    type="file"
+                    name="beforePhoto"
+                    accept="image/*"
+                    ref={beforeInputRef}
+                    onChange={(e) => handlePhotoSelect(e, setBeforePreview)}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => beforeInputRef.current?.click()}
+                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
+                  >
+                    {beforePreview ? (
+                      <Image
+                        src={beforePreview}
+                        alt="Before"
+                        fill
+                        className="object-cover rounded-xl"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
+                        <span className="text-[11px]">ถ่ายรูปก่อน</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* รูปหลังสูบ */}
+                <div>
+                  <span className="block text-[11px] text-slate-500 mb-1">2. รูปหลังสูบ</span>
+                  <input
+                    type="file"
+                    name="afterPhoto"
+                    accept="image/*"
+                    ref={afterInputRef}
+                    onChange={(e) => handlePhotoSelect(e, setAfterPreview)}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => afterInputRef.current?.click()}
+                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
+                  >
+                    {afterPreview ? (
+                      <Image
+                        src={afterPreview}
+                        alt="After"
+                        fill
+                        className="object-cover rounded-xl"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
+                        <span className="text-[11px]">ถ่ายรูปหลัง</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* รูปสลิปโอนเงิน (ถ้าเลือกโอน) */}
+              {paymentMethod === "TRANSFER" && (
+                <div>
+                  <span className="block text-[11px] text-slate-500 mb-1">3. สลิปโอนเงิน</span>
+                  <input
+                    type="file"
+                    name="slipPhoto"
+                    accept="image/*"
+                    ref={slipInputRef}
+                    onChange={(e) => handlePhotoSelect(e, setSlipPreview)}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => slipInputRef.current?.click()}
+                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
+                  >
+                    {slipPreview ? (
+                      <Image
+                        src={slipPreview}
+                        alt="Slip"
+                        fill
+                        className="object-cover rounded-xl"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
+                        <span className="text-[11px]">แนบสลิปโอนเงิน</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* GPS Status Indicator */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      coords?.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                    }`}
+                  />
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>พิกัด GPS หน้างาน</span>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => refreshPosition()}
+                  disabled={gpsLoading}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+                  title="กดเพื่อดึงพิกัดปัจจุบันใหม่ล่าสุดทันที"
+                >
+                  <RotateCw className={`w-3 h-3 ${gpsLoading ? "animate-spin text-emerald-600" : ""}`} />
+                  <span>{gpsLoading ? "กำลังจับพิกัด..." : "อัปเดตพิกัดใหม่"}</span>
+                </button>
+              </div>
+
+              {coords && coords.lat !== null && coords.lng !== null ? (
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
+                  <div className="flex items-center justify-between text-slate-700">
+                    <span className="font-mono font-medium text-slate-900">
+                      Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng.toFixed(5)}
+                    </span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>เปิดดูแผนที่จริง</span>
+                    </a>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-0.5">
+                    {coords.timestamp && (
+                      <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                        <Clock className="w-3 h-3 text-emerald-600" />
+                        ดึงพิกัดสด: {coords.timestamp.toLocaleTimeString("th-TH")} น.
+                      </span>
+                    )}
+                    {coords.accuracy && (
+                      <span className="text-slate-500">ความแม่นยำ: ±{coords.accuracy} ม.</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-amber-600 font-medium">{gpsStatus || "กำลังดึงพิกัด GPS ปัจจุบัน..."}</p>
+              )}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* หมายเหตุเพิ่มเติม */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-          <FileText className="w-3.5 h-3.5 text-slate-400" />
-          <span>หมายเหตุเพิ่มเติมหลังจบงาน</span>
-        </label>
-        <input
-          type="text"
-          name="note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="เช่น ดูดเสร็จเรียบร้อย ลูกค้าพึงพอใจมาก"
-          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-        />
-      </div>
-
-      {/* GPS Status Indicator */}
-      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${
-                coords?.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-              }`}
-            />
-            <span className="font-bold text-slate-800 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-              <span>พิกัด GPS หน้างาน</span>
-            </span>
+          {/* Submit Button */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{compressingText || "กำลังบันทึกข้อมูล..."}</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  <span>📸 บันทึกจบงาน & แจ้งเตือน LINE</span>
+                </>
+              )}
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => refreshPosition()}
-            disabled={gpsLoading}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
-            title="กดเพื่อดึงพิกัดปัจจุบันใหม่ล่าสุดทันที"
-          >
-            <RotateCw className={`w-3 h-3 ${gpsLoading ? "animate-spin text-emerald-600" : ""}`} />
-            <span>{gpsLoading ? "กำลังจับพิกัด..." : "อัปเดตพิกัดใหม่"}</span>
-          </button>
         </div>
-
-        {coords && coords.lat !== null && coords.lng !== null ? (
-          <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="font-mono font-medium text-slate-900">
-                Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng.toFixed(5)}
-              </span>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-medium"
-              >
-                <ExternalLink className="w-3 h-3" />
-                <span>เปิดดูแผนที่จริง</span>
-              </a>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-0.5">
-              {coords.timestamp && (
-                <span className="flex items-center gap-1 text-emerald-700 font-medium">
-                  <Clock className="w-3 h-3 text-emerald-600" />
-                  ดึงพิกัดสด: {coords.timestamp.toLocaleTimeString("th-TH")} น.
-                </span>
-              )}
-              {coords.accuracy && (
-                <span className="text-slate-500">ความแม่นยำ: ±{coords.accuracy} ม.</span>
-              )}
-            </div>
-          </div>
-        ) : (
-          <p className="text-amber-600 font-medium">{gpsStatus || "กำลังดึงพิกัด GPS ปัจจุบัน..."}</p>
-        )}
-      </div>
-
-      {/* Submit Button */}
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>{compressingText || "กำลังบันทึกข้อมูล..."}</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-5 h-5" />
-              <span>📸 บันทึกจบงาน & แจ้งเตือน LINE</span>
-            </>
-          )}
-        </button>
       </div>
     </form>
   );

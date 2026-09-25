@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { getCurrentUser } from "@/lib/auth";
 import { ToastContainer } from "@/components/Toast";
@@ -27,10 +27,18 @@ export default async function RootLayout({
 
   return (
     <html lang="th">
-      <body className="antialiased pb-20 sm:pb-8 bg-slate-50 min-h-screen">
+      <body className="antialiased bg-slate-50 min-h-screen text-slate-800">
         <ToastContainer />
-        <Navbar user={user} />
-        {children}
+        {user ? (
+          <div className="flex flex-col lg:flex-row min-h-screen">
+            <Sidebar user={user} />
+            <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
+              {children}
+            </div>
+          </div>
+        ) : (
+          children
+        )}
         <BottomNav user={user} />
       </body>
     </html>

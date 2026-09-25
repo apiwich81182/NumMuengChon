@@ -190,399 +190,419 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* เลือกรถ */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">ทะเบียนรถ</label>
-        <select
-          name="vehicleId"
-          required
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
-        >
-          <option value="">-- เลือกรถที่ใช้ปฏิบัติงาน --</option>
-          {vehicles.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.plateNumber}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* เลือกพนักงาน 1 และ 2 */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            👷‍♂️ พนักงาน 1 (หลัก)
-          </label>
-          {/* ถ้าเป็นแอดมิน ให้เลือกได้อิสระ แต่ถ้าเป็นคนขับ ให้ล็อกชื่อตัวเองถาวร */}
-          {drivers.some((d) => d.id === currentUserId) ? (
-            <div>
-              <div className="w-full px-3 py-2 border rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm">
-                {drivers.find((d) => d.id === currentUserId)?.name || "คุณ (ผู้ใช้งานปัจจุบัน)"}
-              </div>
-              <input type="hidden" name="driver1Id" value={currentUserId} />
-            </div>
-          ) : (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* คอลัมน์ซ้าย: ข้อมูลรถ พนักงาน ลูกค้า และการเงิน */}
+        <div className="space-y-4">
+          {/* เลือกรถ */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">ทะเบียนรถ</label>
             <select
-              name="driver1Id"
-              defaultValue={currentUserId || ""}
+              name="vehicleId"
               required
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
             >
-              <option value="">-- เลือกพนักงาน --</option>
-              {drivers.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
+              <option value="">-- เลือกรถที่ใช้ปฏิบัติงาน --</option>
+              {vehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.plateNumber}
                 </option>
               ))}
             </select>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            👷‍♂️ พนักงาน 2 (ผู้ช่วย)
-          </label>
-          <select
-            name="driver2Id"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm"
-          >
-            <option value="">-- ไม่มี / ไปคนเดียว --</option>
-            {drivers
-              // กรองชื่อตัวเองออกจากรายชื่อผู้ช่วย (ไม่ให้เลือกตัวเองซ้ำทั้ง 1 และ 2)
-              .filter((d) => d.id !== currentUserId)
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-          </select>
-        </div>
-      </div>
-
-      {/* ข้อมูลลูกค้า */}
-      <div className="space-y-3.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-blue-600" />
-              <span>เบอร์โทรลูกค้า</span>
-            </span>
-            {isSearchingPhone && (
-              <span className="text-[11px] text-blue-600 flex items-center gap-1 font-normal">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                กำลังค้นหาประวัติ...
-              </span>
-            )}
-          </label>
-          <div className="relative">
-            <input
-              type="tel"
-              name="customerPhone"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              maxLength={10}
-              placeholder="08xxxxxxxx (พิมพ์เพื่อค้นหาลูกค้าเก่าอัตโนมัติ)"
-              className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
-            />
           </div>
-        </div>
 
-        {/* แจ้งเตือนเมื่อพบข้อมูลลูกค้าเก่า */}
-        {foundCustomer && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-xs text-emerald-800 animate-in fade-in duration-200">
-            <div className="flex items-center gap-1.5 font-bold text-emerald-800">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>พบข้อมูลลูกค้าเดิม: {foundCustomer.name}</span>
+          {/* เลือกพนักงาน 1 และ 2 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                👷‍♂️ พนักงาน 1 (หลัก)
+              </label>
+              {drivers.some((d) => d.id === currentUserId) ? (
+                <div>
+                  <div className="w-full px-3 py-2 border rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm">
+                    {drivers.find((d) => d.id === currentUserId)?.name || "คุณ (ผู้ใช้งานปัจจุบัน)"}
+                  </div>
+                  <input type="hidden" name="driver1Id" value={currentUserId} />
+                </div>
+              ) : (
+                <select
+                  name="driver1Id"
+                  defaultValue={currentUserId || ""}
+                  required
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm"
+                >
+                  <option value="">-- เลือกพนักงาน --</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-            {foundCustomer.jobs && foundCustomer.jobs.length > 0 && (
-              <div className="text-[11px] text-emerald-700 space-y-0.5 pt-0.5 border-t border-emerald-200/60">
-                <p>
-                  เคยใช้บริการ <span className="font-semibold">{foundCustomer.jobs.length} ครั้ง</span>
-                  {foundCustomer.jobs[0].price ? ` | ล่าสุด: ฿${foundCustomer.jobs[0].price.toLocaleString()}` : ""}
-                  {foundCustomer.jobs[0].volumePumped ? ` (${foundCustomer.jobs[0].volumePumped.toLocaleString()} ลิตร)` : ""}
-                  {foundCustomer.jobs[0].vehicle?.plateNumber ? ` ทะเบียน ${foundCustomer.jobs[0].vehicle.plateNumber}` : ""}
-                </p>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                👷‍♂️ พนักงาน 2 (ผู้ช่วย)
+              </label>
+              <select
+                name="driver2Id"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm"
+              >
+                <option value="">-- ไม่มี / ไปคนเดียว --</option>
+                {drivers
+                  .filter((d) => d.id !== currentUserId)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ข้อมูลลูกค้า */}
+          <div className="space-y-3.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-blue-600" />
+                  <span>เบอร์โทรลูกค้า</span>
+                </span>
+                {isSearchingPhone && (
+                  <span className="text-[11px] text-blue-600 flex items-center gap-1 font-normal">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    กำลังค้นหาประวัติ...
+                  </span>
+                )}
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  name="customerPhone"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  maxLength={10}
+                  placeholder="08xxxxxxxx (พิมพ์เพื่อค้นหาลูกค้าเก่าอัตโนมัติ)"
+                  className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* แจ้งเตือนเมื่อพบข้อมูลลูกค้าเก่า */}
+            {foundCustomer && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-xs text-emerald-800 animate-in fade-in duration-200">
+                <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>พบข้อมูลลูกค้าเดิม: {foundCustomer.name}</span>
+                </div>
+                {foundCustomer.jobs && foundCustomer.jobs.length > 0 && (
+                  <div className="text-[11px] text-emerald-700 space-y-0.5 pt-0.5 border-t border-emerald-200/60">
+                    <p>
+                      เคยใช้บริการ <span className="font-semibold">{foundCustomer.jobs.length} ครั้ง</span>
+                      {foundCustomer.jobs[0].price ? ` | ล่าสุด: ฿${foundCustomer.jobs[0].price.toLocaleString()}` : ""}
+                      {foundCustomer.jobs[0].volumePumped ? ` (${foundCustomer.jobs[0].volumePumped.toLocaleString()} ลิตร)` : ""}
+                      {foundCustomer.jobs[0].vehicle?.plateNumber ? ` ทะเบียน ${foundCustomer.jobs[0].vehicle.plateNumber}` : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                ชื่อลูกค้า / หน้างาน <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="customerName"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                required
+                placeholder="เช่น บ้านคุณสมพงษ์ / หอพัก A"
+                className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span>ที่อยู่ / จุดสังเกตหน้างาน</span>
+                <span className="text-xs text-slate-400 font-normal">(ไม่บังคับ)</span>
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="เช่น บ้านเลขที่ 12/3 ซอย 5 หรือ ข้างวัดคลองสอง"
+                className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+              />
+            </div>
+          </div>
+
+          {/* ปริมาณและราคา */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ปริมาณที่สูบ (ลิตร)</label>
+              <input
+                type="number"
+                name="volumePumped"
+                defaultValue={0}
+                min={0}
+                step="any"
+                placeholder="0"
+                className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ยอดเงิน (บาท)</label>
+              <input
+                type="number"
+                name="price"
+                placeholder="เช่น 1200"
+                required
+                className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-bold"
+              />
+            </div>
+          </div>
+
+          {/* วิธีการชำระเงิน */}
+          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <label className="block text-sm font-medium text-slate-700 mb-2">วิธีการชำระเงิน</label>
+            <div className="flex gap-6 mb-3">
+              <label className="flex items-center gap-2 text-slate-700 cursor-pointer text-sm font-medium">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="CASH"
+                  checked={paymentMethod === "CASH"}
+                  onChange={() => setPaymentMethod("CASH")}
+                />
+                <span>💵 เงินสด</span>
+              </label>
+              <label className="flex items-center gap-2 text-slate-700 cursor-pointer text-sm font-medium">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="TRANSFER"
+                  checked={paymentMethod === "TRANSFER"}
+                  onChange={() => setPaymentMethod("TRANSFER")}
+                />
+                <span>📱 โอนเงินผ่านบัญชี</span>
+              </label>
+            </div>
+
+            {paymentMethod === "TRANSFER" && (
+              <div className="pt-3 border-t border-slate-200">
+                <label className="block text-xs font-semibold text-blue-700 mb-1.5">
+                  🧾 แนบรูปสลิปการโอนเงิน
+                </label>
+                <input
+                  ref={slipInputRef}
+                  id="slipPhoto"
+                  type="file"
+                  name="slipPhoto"
+                  accept="image/*"
+                  onChange={(e) => handlePhotoSelect(e, setSlipPreview)}
+                  className="sr-only"
+                />
+                {slipPreview ? (
+                  <div className="relative h-32 rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={slipPreview} alt="รูปสลิป" className="w-full h-full object-contain" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSlipPreview(null);
+                        if (slipInputRef.current) slipInputRef.current.value = "";
+                      }}
+                      className="absolute top-2 right-2 px-2.5 py-1 bg-black/75 hover:bg-rose-600 text-white text-[11px] font-semibold rounded-lg transition cursor-pointer"
+                    >
+                      ✕ ถ่ายใหม่
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="slipPhoto"
+                    className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-blue-300 hover:border-blue-500 rounded-xl bg-blue-50/50 hover:bg-blue-100/50 cursor-pointer transition text-center min-h-[80px]"
+                  >
+                    <span className="text-xl mb-0.5">🧾</span>
+                    <span className="text-xs font-semibold text-blue-800">แตะเพื่อถ่ายรูปสลิป</span>
+                    <span className="text-[10px] text-blue-500 mt-0.5">หรือเลือกรูปจากเครื่อง</span>
+                  </label>
+                )}
               </div>
             )}
           </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            ชื่อลูกค้า / หน้างาน <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="customerName"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            required
-            placeholder="เช่น บ้านคุณสมพงษ์ / หอพัก A"
-            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
-          />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
-            <span>ที่อยู่ / จุดสังเกตหน้างาน</span>
-            <span className="text-xs text-slate-400 font-normal">(ไม่บังคับ)</span>
-          </label>
-          <input
-            type="text"
-            name="address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="เช่น บ้านเลขที่ 12/3 ซอย 5 หรือ ข้างวัดคลองสอง"
-            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
-          />
-        </div>
-      </div>
+        {/* คอลัมน์ขวา: ภาพถ่าย พิกัด GPS และปุ่มกดยืนยันบันทึกส่งงาน */}
+        <div className="space-y-4 flex flex-col justify-between h-full">
+          <div className="space-y-4">
+            {/* ช่องถ่ายรูป (ปุ่มสัมผัสขนาดใหญ่ + พรีวิวภาพทันที) */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">📸 หลักฐานรูปถ่ายหน้างาน</label>
+              <div className="grid grid-cols-2 gap-3">
+                {/* รูปก่อนสูบ */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">รูปก่อนสูบ</label>
+                  <input
+                    ref={beforeInputRef}
+                    id="beforePhoto"
+                    type="file"
+                    name="beforePhoto"
+                    accept="image/*"
+                    onChange={(e) => handlePhotoSelect(e, setBeforePreview)}
+                    className="sr-only"
+                  />
+                  {beforePreview ? (
+                    <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={beforePreview} alt="รูปก่อนสูบ" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBeforePreview(null);
+                          if (beforeInputRef.current) beforeInputRef.current.value = "";
+                        }}
+                        className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer"
+                      >
+                        ✕ ถ่ายใหม่
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="beforePhoto"
+                      className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition text-center min-h-[110px]"
+                    >
+                      <span className="text-3xl mb-1">📷</span>
+                      <span className="text-xs font-semibold text-slate-700">แตะถ่ายรูป</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">ก่อนสูบ</span>
+                    </label>
+                  )}
+                </div>
 
-      {/* ปริมาณและราคา */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">ปริมาณที่สูบ (ลิตร)</label>
-          <input
-            type="number"
-            name="volumePumped"
-            defaultValue={0}
-            min={0}
-            step="any"
-            placeholder="0"
-            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-medium"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">ยอดเงิน (บาท)</label>
-          <input
-            type="number"
-            name="price"
-            placeholder="เช่น 1200"
-            required
-            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 placeholder:text-slate-400 font-bold"
-          />
-        </div>
-      </div>
+                {/* รูปหลังสูบ */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">รูปหลังสูบ</label>
+                  <input
+                    ref={afterInputRef}
+                    id="afterPhoto"
+                    type="file"
+                    name="afterPhoto"
+                    accept="image/*"
+                    onChange={(e) => handlePhotoSelect(e, setAfterPreview)}
+                    className="sr-only"
+                  />
+                  {afterPreview ? (
+                    <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={afterPreview} alt="รูปหลังสูบ" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAfterPreview(null);
+                          if (afterInputRef.current) afterInputRef.current.value = "";
+                        }}
+                        className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer"
+                      >
+                        ✕ ถ่ายใหม่
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="afterPhoto"
+                      className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition text-center min-h-[110px]"
+                    >
+                      <span className="text-3xl mb-1">📷</span>
+                      <span className="text-xs font-semibold text-slate-700">แตะถ่ายรูป</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">หลังสูบ</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
 
-      {/* วิธีการชำระเงิน */}
-      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-        <label className="block text-sm font-medium text-slate-700 mb-2">วิธีการชำระเงิน</label>
-        <div className="flex gap-6 mb-3">
-          <label className="flex items-center gap-2 text-slate-700 cursor-pointer text-sm font-medium">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="CASH"
-              checked={paymentMethod === "CASH"}
-              onChange={() => setPaymentMethod("CASH")}
-            />
-            <span>💵 เงินสด</span>
-          </label>
-          <label className="flex items-center gap-2 text-slate-700 cursor-pointer text-sm font-medium">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="TRANSFER"
-              checked={paymentMethod === "TRANSFER"}
-              onChange={() => setPaymentMethod("TRANSFER")}
-            />
-            <span>📱 โอนเงินผ่านบัญชี</span>
-          </label>
-        </div>
+            {/* GPS Status Indicator */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      coords.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                    }`}
+                  />
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                    <span>พิกัด GPS หน้างาน</span>
+                  </span>
+                </div>
 
-        {paymentMethod === "TRANSFER" && (
-          <div className="pt-3 border-t border-slate-200">
-            <label className="block text-xs font-semibold text-blue-700 mb-1.5">
-              🧾 แนบรูปสลิปการโอนเงิน
-            </label>
-            <input
-              ref={slipInputRef}
-              id="slipPhoto"
-              type="file"
-              name="slipPhoto"
-              accept="image/*"
-              onChange={(e) => handlePhotoSelect(e, setSlipPreview)}
-              className="sr-only"
-            />
-            {slipPreview ? (
-              <div className="relative h-32 rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={slipPreview} alt="รูปสลิป" className="w-full h-full object-contain" />
                 <button
                   type="button"
-                  onClick={() => {
-                    setSlipPreview(null);
-                    if (slipInputRef.current) slipInputRef.current.value = "";
-                  }}
-                  className="absolute top-2 right-2 px-2.5 py-1 bg-black/75 hover:bg-rose-600 text-white text-[11px] font-semibold rounded-lg transition cursor-pointer"
+                  onClick={() => refreshPosition()}
+                  disabled={gpsLoading}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+                  title="กดเพื่อดึงพิกัดปัจจุบันใหม่ล่าสุดทันที"
                 >
-                  ✕ ถ่ายใหม่
+                  <RotateCw className={`w-3 h-3 ${gpsLoading ? "animate-spin text-blue-600" : ""}`} />
+                  <span>{gpsLoading ? "กำลังจับพิกัด..." : "อัปเดตพิกัดใหม่"}</span>
                 </button>
               </div>
-            ) : (
-              <label
-                htmlFor="slipPhoto"
-                className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-blue-300 hover:border-blue-500 rounded-xl bg-blue-50/50 hover:bg-blue-100/50 cursor-pointer transition text-center min-h-[80px]"
-              >
-                <span className="text-xl mb-0.5">🧾</span>
-                <span className="text-xs font-semibold text-blue-800">แตะเพื่อถ่ายรูปสลิป</span>
-                <span className="text-[10px] text-blue-500 mt-0.5">หรือเลือกรูปจากเครื่อง</span>
-              </label>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* ช่องถ่ายรูป (ปุ่มสัมผัสขนาดใหญ่ + พรีวิวภาพทันที) */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* รูปก่อนสูบ */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">📷 รูปก่อนสูบ</label>
-          <input
-            ref={beforeInputRef}
-            id="beforePhoto"
-            type="file"
-            name="beforePhoto"
-            accept="image/*"
-            onChange={(e) => handlePhotoSelect(e, setBeforePreview)}
-            className="sr-only"
-          />
-          {beforePreview ? (
-            <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={beforePreview} alt="รูปก่อนสูบ" className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => {
-                  setBeforePreview(null);
-                  if (beforeInputRef.current) beforeInputRef.current.value = "";
-                }}
-                className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer"
-              >
-                ✕ ถ่ายใหม่
-              </button>
-            </div>
-          ) : (
-            <label
-              htmlFor="beforePhoto"
-              className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition text-center min-h-[96px]"
-            >
-              <span className="text-2xl mb-1">📷</span>
-              <span className="text-xs font-semibold text-slate-700">แตะถ่ายรูป</span>
-              <span className="text-[10px] text-slate-400 mt-0.5">ก่อนสูบ</span>
-            </label>
-          )}
-        </div>
+              {coords.lat && coords.lng ? (
+                <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
+                  <div className="flex items-center justify-between text-slate-700">
+                    <span className="font-mono font-medium text-slate-900">
+                      Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng.toFixed(5)}
+                    </span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>เปิดดูแผนที่จริง</span>
+                    </a>
+                  </div>
 
-        {/* รูปหลังสูบ */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">📷 รูปหลังสูบ</label>
-          <input
-            ref={afterInputRef}
-            id="afterPhoto"
-            type="file"
-            name="afterPhoto"
-            accept="image/*"
-            onChange={(e) => handlePhotoSelect(e, setAfterPreview)}
-            className="sr-only"
-          />
-          {afterPreview ? (
-            <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={afterPreview} alt="รูปหลังสูบ" className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => {
-                  setAfterPreview(null);
-                  if (afterInputRef.current) afterInputRef.current.value = "";
-                }}
-                className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer"
-              >
-                ✕ ถ่ายใหม่
-              </button>
-            </div>
-          ) : (
-            <label
-              htmlFor="afterPhoto"
-              className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition text-center min-h-[96px]"
-            >
-              <span className="text-2xl mb-1">📷</span>
-              <span className="text-xs font-semibold text-slate-700">แตะถ่ายรูป</span>
-              <span className="text-[10px] text-slate-400 mt-0.5">หลังสูบ</span>
-            </label>
-          )}
-        </div>
-      </div>
-
-      {/* GPS Status Indicator */}
-      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${
-                coords.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-              }`}
-            />
-            <span className="font-bold text-slate-800 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-blue-600" />
-              <span>พิกัด GPS หน้างาน</span>
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => refreshPosition()}
-            disabled={gpsLoading}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
-            title="กดเพื่อดึงพิกัดปัจจุบันใหม่ล่าสุดทันที"
-          >
-            <RotateCw className={`w-3 h-3 ${gpsLoading ? "animate-spin text-blue-600" : ""}`} />
-            <span>{gpsLoading ? "กำลังจับพิกัด..." : "อัปเดตพิกัดใหม่"}</span>
-          </button>
-        </div>
-
-        {coords.lat && coords.lng ? (
-          <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="font-mono font-medium text-slate-900">
-                Lat: {coords.lat.toFixed(5)}, Lng: {coords.lng.toFixed(5)}
-              </span>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-medium"
-              >
-                <ExternalLink className="w-3 h-3" />
-                <span>เปิดดูแผนที่จริง</span>
-              </a>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-0.5">
-              {coords.timestamp && (
-                <span className="flex items-center gap-1 text-emerald-700 font-medium">
-                  <Clock className="w-3 h-3 text-emerald-600" />
-                  ดึงพิกัดสด: {coords.timestamp.toLocaleTimeString("th-TH")} น.
-                </span>
-              )}
-              {coords.accuracy && (
-                <span className="text-slate-500">ความแม่นยำ: ±{coords.accuracy} ม.</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-0.5">
+                    {coords.timestamp && (
+                      <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                        <Clock className="w-3 h-3 text-emerald-600" />
+                        ดึงพิกัดสด: {coords.timestamp.toLocaleTimeString("th-TH")} น.
+                      </span>
+                    )}
+                    {coords.accuracy && (
+                      <span className="text-slate-500">ความแม่นยำ: ±{coords.accuracy} ม.</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-amber-600 font-medium">{gpsStatus}</p>
               )}
             </div>
           </div>
-        ) : (
-          <p className="text-amber-600 font-medium">{gpsStatus}</p>
-        )}
-      </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition disabled:opacity-50"
-      >
-        {loading ? (compressingText || "กำลังบันทึกงาน...") : "บันทึกส่งงาน"}
-      </button>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-base"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{compressingText || "กำลังบันทึกงาน..."}</span>
+                </>
+              ) : (
+                <span>🚛 บันทึกส่งงาน</span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </form>
   );
 }
