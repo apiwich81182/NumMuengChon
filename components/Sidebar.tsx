@@ -303,7 +303,7 @@ export default function Sidebar({ user }: SidebarProps) {
           {/* นาฬิกา Realtime (แสดงเมื่อขยาย) */}
           {!collapsed && (
             <div className="px-1">
-              <div className="p-2 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-center">
+              <div className="py-2.5 px-3 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-center">
                 <RealtimeClock />
               </div>
             </div>

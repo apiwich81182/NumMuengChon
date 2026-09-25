@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
-import BottomNav from "@/components/BottomNav";
 import { getCurrentUser } from "@/lib/auth";
 import { ToastContainer } from "@/components/Toast";
 
@@ -32,14 +31,13 @@ export default async function RootLayout({
         {user ? (
           <div className="flex flex-col lg:flex-row min-h-screen">
             <Sidebar user={user} />
-            <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
+            <div className="flex-1 flex flex-col min-w-0 pb-8">
               {children}
             </div>
           </div>
         ) : (
           children
         )}
-        <BottomNav user={user} />
       </body>
     </html>
   );

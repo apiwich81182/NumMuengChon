@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Calendar, Clock } from "lucide-react";
 
-export default function RealtimeClock() {
+interface RealtimeClockProps {
+  className?: string;
+}
+
+export default function RealtimeClock({ className = "" }: RealtimeClockProps) {
   const [timeStr, setTimeStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
 
@@ -18,12 +23,12 @@ export default function RealtimeClock() {
         hour12: false,
       });
 
-      // วันที่: พุธ 9 ก.ย. 69
+      // วันที่: ศุกร์ 25 ก.ย. 2569
       const date = now.toLocaleDateString("th-TH", {
         weekday: "short",
         day: "numeric",
         month: "short",
-        year: "2-digit",
+        year: "numeric",
       });
 
       setTimeStr(time);
@@ -38,13 +43,21 @@ export default function RealtimeClock() {
 
   if (!timeStr) {
     // ป้องกัน layout ขยับตอนโหลดหน้าแรก
-    return <div className="h-6 w-24 bg-slate-100/50 rounded animate-pulse" />;
+    return <div className="h-10 w-32 bg-slate-800/50 rounded-lg animate-pulse" />;
   }
 
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/80 hover:bg-slate-100 border border-slate-200/70 rounded-lg text-slate-700 font-mono text-xs shadow-sm transition">
-      <span className="text-black font-sans hidden sm:inline">{dateStr}</span>
-      <span className="text-black tracking-wider">🕒 {timeStr}</span>
+    <div className={`flex flex-col items-center justify-center gap-0.5 text-center select-none ${className}`}>
+      {/* วันที่ (แสดงผลเสมอทุกขนาดหน้าจอ ไม่มี hidden sm:inline) */}
+      <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium font-sans">
+        <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+        <span>{dateStr}</span>
+      </div>
+      {/* เวลา */}
+      <div className="flex items-center gap-1.5 text-sm font-bold text-white font-mono tracking-wider">
+        <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        <span>{timeStr} น.</span>
+      </div>
     </div>
   );
 }
