@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveOrUpdateCustomer, deleteCustomer, getCustomerHistory } from "@/actions/customers";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 import {
   Users,
   Search,
@@ -161,7 +162,7 @@ export default function CustomerDirectoryClient({
       });
 
       if (!res.success) {
-        toast.error(res.error || "เกิดข้อผิดพลาดในการบันทึก");
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการบันทึก"));
         setSaving(false);
         return;
       }
@@ -171,7 +172,7 @@ export default function CustomerDirectoryClient({
       router.refresh();
     } catch (err) {
       console.error(err);
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      toast.error(formatUserErrorMessage(err, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อบันทึกข้อมูลได้"));
     } finally {
       setSaving(false);
     }
@@ -187,10 +188,10 @@ export default function CustomerDirectoryClient({
         toast.success("ลบข้อมูลลูกค้าเรียบร้อยแล้ว");
         router.refresh();
       } else {
-        toast.error(res.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการลบข้อมูล"));
       }
-    } catch {
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } catch (err) {
+      toast.error(formatUserErrorMessage(err, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อลบข้อมูลได้"));
     }
   }
 

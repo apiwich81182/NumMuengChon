@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateLeaveStatus } from "@/actions/attendance";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 
 export default function LeaveActionButtons({
   attendanceId,
@@ -15,12 +16,17 @@ export default function LeaveActionButtons({
 
   async function handleAction(approved: boolean) {
     setLoading(true);
-    const res = await updateLeaveStatus(attendanceId, approved);
-    setLoading(false);
-    if (res.success) {
-      toast.success(approved ? "อนุมัติคำขอลาเรียบร้อยแล้ว" : "ยกเลิกการอนุมัติคำขอลาแล้ว");
-    } else {
-      toast.error(res.error || "เกิดข้อผิดพลาด");
+    try {
+      const res = await updateLeaveStatus(attendanceId, approved);
+      if (res.success) {
+        toast.success(approved ? "อนุมัติคำขอลาเรียบร้อยแล้ว" : "ยกเลิกการอนุมัติคำขอลาแล้ว");
+      } else {
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการอัปเดตสถานะ"));
+      }
+    } catch (err) {
+      toast.error(formatUserErrorMessage(err, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้"));
+    } finally {
+      setLoading(false);
     }
   }
 

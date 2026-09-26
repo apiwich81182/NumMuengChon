@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toggleJobReconciled } from "@/actions/jobs";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -28,10 +29,10 @@ export default function ReconcileCashButton({
         );
         router.refresh();
       } else {
-        toast.error(res.error || "เกิดข้อผิดพลาดในการเปลี่ยนสถานะ");
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการเปลี่ยนสถานะ"));
       }
-    } catch {
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } catch (err) {
+      toast.error(formatUserErrorMessage(err, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่ออัปเดตสถานะรับเงินได้"));
     } finally {
       setLoading(false);
     }

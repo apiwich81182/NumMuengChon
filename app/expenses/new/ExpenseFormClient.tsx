@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createExpense } from "@/actions/expenses";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 import imageCompression from "browser-image-compression";
 
 interface VehicleOption {
@@ -74,7 +75,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
 
       const res = await createExpense(formData);
       if (!res.success) {
-        const message = res.error || "บันทึกข้อมูลไม่สำเร็จ";
+        const message = formatUserErrorMessage(res.error, "บันทึกรายจ่ายไม่สำเร็จ");
         setErrorMsg(message);
         toast.error(message);
         setLoading(false);
@@ -85,7 +86,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
       router.push("/expenses");
       router.refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก";
+      const message = formatUserErrorMessage(err, "ไม่สามารถบันทึกรายจ่ายได้");
       setErrorMsg(message);
       toast.error(message);
       setLoading(false);
@@ -233,7 +234,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white rounded-xl font-bold transition shadow-sm mt-2 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
             {loading ? "⏳ กำลังบันทึกข้อมูล..." : "บันทึกรายการ"}
           </button>

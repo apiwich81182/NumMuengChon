@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { assignJob } from "@/actions/jobs";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 import {
   Phone,
   User,
@@ -194,7 +195,7 @@ export default function AssignJobForm({
       const res = await assignJob(formData);
 
       if (!res.success) {
-        toast.error(res.error || "เกิดข้อผิดพลาดในการมอบหมายงาน");
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการมอบหมายงาน"));
         setLoading(false);
         return;
       }
@@ -204,7 +205,7 @@ export default function AssignJobForm({
       router.refresh();
     } catch (error) {
       console.error("Assign error:", error);
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      toast.error(formatUserErrorMessage(error, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อจ่ายงานได้"));
       setLoading(false);
     }
   }
@@ -499,7 +500,7 @@ export default function AssignJobForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? (
             <>

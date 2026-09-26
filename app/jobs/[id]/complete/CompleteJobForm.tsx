@@ -6,6 +6,7 @@ import { completeJob } from "@/actions/jobs";
 import imageCompression from "browser-image-compression";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 import {
   Camera,
   MapPin,
@@ -157,7 +158,7 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
       const res = await completeJob(formData);
 
       if (!res.success) {
-        toast.error(res.error || "เกิดข้อผิดพลาดในการบันทึกจบงาน");
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการบันทึกจบงาน"));
         setLoading(false);
         setCompressingText("");
         return;
@@ -168,7 +169,7 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
       router.refresh();
     } catch (error) {
       console.error("Complete error:", error);
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      toast.error(formatUserErrorMessage(error, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อบันทึกจบงานได้"));
       setLoading(false);
       setCompressingText("");
     }
@@ -569,7 +570,7 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white font-bold text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <>

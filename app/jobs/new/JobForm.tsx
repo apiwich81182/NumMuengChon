@@ -6,6 +6,7 @@ import { createJob } from "@/actions/jobs";
 import imageCompression from "browser-image-compression";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 import { MapPin, RotateCw, ExternalLink, Clock, Phone, Loader2, Sparkles } from "lucide-react";
 
 interface Vehicle {
@@ -180,12 +181,12 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
         router.push("/jobs");
         router.refresh();
       } else {
-        toast.error(res.error ? `เกิดข้อผิดพลาด: ${res.error}` : "เกิดข้อผิดพลาดในการบันทึก");
+        toast.error(formatUserErrorMessage(res.error, "เกิดข้อผิดพลาดในการบันทึก"));
       }
     } catch (err) {
       setLoading(false);
       setCompressingText("");
-      toast.error(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึก");
+      toast.error(formatUserErrorMessage(err, "ไม่สามารถบันทึกส่งงานได้"));
     }
   }
 
@@ -589,7 +590,7 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-base"
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-base"
             >
               {loading ? (
                 <>

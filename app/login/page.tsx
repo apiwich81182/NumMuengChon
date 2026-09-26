@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/actions/auth";
 import { toast } from "@/components/Toast";
+import { formatUserErrorMessage } from "@/lib/formatters";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,17 +16,24 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg("");
 
-    const formData = new FormData(e.currentTarget);
-    const res = await login(formData);
+    try {
+      const formData = new FormData(e.currentTarget);
+      const res = await login(formData);
 
-    if (res?.success) {
-      toast.success("เข้าสู่ระบบสำเร็จ ยินดีต้อนรับครับ");
-      router.push("/jobs");
-      router.refresh();
-    } else {
-      const err = res?.error || "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง";
-      setErrorMsg(err);
-      toast.error(err);
+      if (res?.success) {
+        toast.success("เข้าสู่ระบบสำเร็จ ยินดีต้อนรับครับ");
+        router.push("/jobs");
+        router.refresh();
+      } else {
+        const err = formatUserErrorMessage(res?.error, "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง");
+        setErrorMsg(err);
+        toast.error(err);
+      }
+    } catch (err) {
+      const msg = formatUserErrorMessage(err, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อเข้าสู่ระบบได้");
+      setErrorMsg(msg);
+      toast.error(msg);
+    } finally {
       setLoading(false);
     }
   }

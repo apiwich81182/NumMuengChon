@@ -331,8 +331,32 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
         {/* 1. มุมมองแบบการ์ดสำหรับมือถือ (Mobile Card Layout) */}
         <div className="md:hidden space-y-3">
           {expenses.length === 0 ? (
-            <div className="bg-white p-8 text-center text-slate-400 rounded-2xl border border-slate-200 text-sm">
-              ไม่พบรายการรายจ่ายตามเงื่อนไขที่เลือก
+            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-2xl shadow-2xs">
+                📕
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-800 text-base">
+                  ยังไม่มีประวัติรายจ่ายในเงื่อนไขนี้
+                </h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  คุณสามารถปรับเปลี่ยนตัวกรอง หรือบันทึกค่าน้ำมันและค่าใช้จ่ายหน้างานได้ทันที
+                </p>
+              </div>
+              <div className="pt-2 flex items-center justify-center gap-3">
+                <Link
+                  href="/expenses"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold rounded-xl transition"
+                >
+                  ล้างตัวกรอง
+                </Link>
+                <Link
+                  href="/expenses/new"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5"
+                >
+                  <span>+ บันทึกรายจ่าย</span>
+                </Link>
+              </div>
             </div>
           ) : (
             expenses.map((exp) => {
@@ -429,8 +453,34 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {expenses.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400 text-sm">
-                      ไม่พบรายการรายจ่ายตามเงื่อนไขที่เลือก
+                    <td colSpan={6} className="py-12 text-center">
+                      <div className="space-y-3 max-w-sm mx-auto">
+                        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-2xl shadow-2xs">
+                          📕
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-slate-800 text-sm">
+                            ยังไม่มีประวัติรายจ่ายในเงื่อนไขนี้
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            คุณสามารถปรับเปลี่ยนตัวกรอง หรือบันทึกค่าน้ำมันและค่าใช้จ่ายหน้างานได้ทันที
+                          </p>
+                        </div>
+                        <div className="pt-1 flex items-center justify-center gap-2">
+                          <Link
+                            href="/expenses"
+                            className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold rounded-xl transition"
+                          >
+                            ล้างตัวกรอง
+                          </Link>
+                          <Link
+                            href="/expenses/new"
+                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition shadow-xs"
+                          >
+                            + บันทึกรายจ่าย
+                          </Link>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ) : (

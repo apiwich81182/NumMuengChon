@@ -370,7 +370,7 @@ export default function Sidebar({ user }: SidebarProps) {
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="p-2 -ml-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 -ml-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 active:scale-95 transition cursor-pointer"
             aria-label="เปิดเมนู"
           >
             <Menu className="w-5 h-5" />
