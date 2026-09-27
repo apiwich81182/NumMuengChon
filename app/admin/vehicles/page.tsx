@@ -10,8 +10,8 @@ export default async function VehiclesAdminPage() {
   const vehicles = await getAllVehicles();
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+      <div className="w-full max-w-[1600px] mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">🚛 จัดการข้อมูลรถสูบส้วม</h1>
           <p className="text-xs sm:text-sm text-slate-500">

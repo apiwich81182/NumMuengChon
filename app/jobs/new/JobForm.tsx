@@ -8,6 +8,8 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "@/components/Toast";
 import { formatUserErrorMessage } from "@/lib/formatters";
 import { MapPin, RotateCw, ExternalLink, Clock, Phone, Loader2, Sparkles } from "lucide-react";
+import GpsRadarBadge from "@/components/animations/GpsRadarBadge";
+import TruckLoader from "@/components/animations/TruckLoader";
 
 interface Vehicle {
   id: string;
@@ -528,10 +530,9 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      coords.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-                    }`}
+                  <GpsRadarBadge
+                    isSearching={gpsLoading}
+                    hasCoords={Boolean(coords.lat && coords.lng)}
                   />
                   <span className="font-bold text-slate-800 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-blue-600" />
@@ -604,6 +605,13 @@ export default function JobForm({ vehicles, drivers, currentUserId }: JobFormPro
           </div>
         </div>
       </div>
+
+      {/* Truck Moving Loading Modal */}
+      <TruckLoader
+        isOpen={loading}
+        title="กำลังบันทึกและส่งงาน..."
+        description={compressingText || "กำลังประมวลผลรูปภาพและส่งข้อมูลเข้าสู่ระบบ"}
+      />
     </form>
   );
 }

@@ -1,0 +1,95 @@
+.radarWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  vertical-align: middle;
+}
+
+.centerDot {
+  position: relative;
+  z-index: 2;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  background-color: #3b82f6; /* blue-500 default */
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.6);
+  transition: all 0.3s ease;
+}
+
+.centerDot.active {
+  background-color: #10b981; /* emerald-500 */
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+.centerDot.searching {
+  background-color: #f59e0b; /* amber-500 */
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+  animation: dotBlink 1s ease-in-out infinite;
+}
+
+.wave1,
+.wave2,
+.wave3 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  pointer-events: none;
+  border: 1.5px solid rgba(59, 130, 246, 0.6);
+  opacity: 0;
+}
+
+.wave1.active,
+.wave2.active,
+.wave3.active {
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.wave1.searching,
+.wave2.searching,
+.wave3.searching {
+  border-color: rgba(245, 158, 11, 0.7);
+  animation: radarPing 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.wave2.searching {
+  animation-delay: 0.6s;
+}
+
+.wave3.searching {
+  animation-delay: 1.2s;
+}
+
+@keyframes radarPing {
+  0% {
+    width: 0.4rem;
+    height: 0.4rem;
+    opacity: 0.9;
+  }
+  70% {
+    width: 1.4rem;
+    height: 1.4rem;
+    opacity: 0.25;
+  }
+  100% {
+    width: 1.7rem;
+    height: 1.7rem;
+    opacity: 0;
+  }
+}
+
+@keyframes dotBlink {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0.6;
+  }
+}
+

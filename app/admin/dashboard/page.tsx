@@ -13,6 +13,8 @@ import { THAI_MONTHS_FULL } from "@/lib/formatters";
 import { getActiveDrivers } from "@/lib/user-service";
 import FinancialCalendar from "@/components/dashboard/FinancialCalendar";
 import DashboardViewSwitcher from "@/components/dashboard/DashboardViewSwitcher";
+import DashboardFilterBar from "@/components/dashboard/DashboardFilterBar";
+import ExportExcelButton from "@/components/ExportExcelButton";
 import { getCalendarMonthData } from "@/lib/calendar-stats";
 
 export const revalidate = 0;
@@ -160,8 +162,8 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   if (endDate) exportParams.set("endDate", endDate);
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-5 sm:space-y-6">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+      <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6">
         {/* หัวกระดาษ และปุ่มแอ็กชัน */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 sm:gap-4">
           <div>
@@ -180,14 +182,14 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               <span>📋</span>
               <span>+ จ่ายงาน</span>
             </Link>
-            <a
-              href={`/api/export/jobs?${exportParams.toString()}`}
-              target="_blank"
+            <ExportExcelButton
+              exportUrl={`/api/export/jobs?${exportParams.toString()}`}
+              defaultFilename="jobs-export.csv"
               className="px-2.5 sm:px-4 py-2 bg-[#027a48] hover:bg-[#02643c] text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1 transition shadow-xs cursor-pointer text-center"
             >
               <span>📊</span>
               <span className="truncate">ส่งออก Excel</span>
-            </a>
+            </ExportExcelButton>
             <Link
               href="/expenses/new"
               className="px-2.5 sm:px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs text-center truncate"
@@ -209,59 +211,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           calendarContent={<FinancialCalendar key="calendar-view" initialData={calendarData} />}
           overviewContent={
             <div key="overview-view" className="space-y-5 sm:space-y-6">
-              {/* แถบตัวกรอง วันนี้ / เดือนนี้ / ปีนี้ / ทั้งหมด */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <form method="GET" className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
-            {/* ปุ่มช่วงเวลาลัด */}
-            <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0 no-scrollbar">
-              <span className="text-slate-500 font-bold whitespace-nowrap">ช่วงเวลา:</span>
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-                {[
-                  { id: "today", label: "วันนี้" },
-                  { id: "this_month", label: "เดือนนี้" },
-                  { id: "this_year", label: "ปีนี้" },
-                  { id: "all", label: "ทั้งหมด" },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/admin/dashboard?period=${item.id}`}
-                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-semibold transition whitespace-nowrap ${
-                      period === item.id && !startDate && !endDate
-                        ? "bg-blue-600 text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* ช่องระบุวันที่เอง */}
-            <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-              <span className="text-slate-400 text-xs">หรือระบุวันที่:</span>
-              <input
-                type="date"
-                name="startDate"
-                defaultValue={startDate}
-                className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:border-blue-500 focus:bg-white text-xs"
+              {/* แถบตัวกรองอัตโนมัติ (Instant Filter Bar) */}
+              <DashboardFilterBar
+                period={period}
+                startDate={startDate}
+                endDate={endDate}
               />
-              <span className="text-slate-400">ถึง</span>
-              <input
-                type="date"
-                name="endDate"
-                defaultValue={endDate}
-                className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:border-blue-500 focus:bg-white text-xs"
-              />
-              <button
-                type="submit"
-                className="px-4 py-1.5 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-lg transition shadow-xs cursor-pointer text-xs"
-              >
-                ค้นหา
-              </button>
-            </div>
-          </form>
-        </div>
 
         {/* แถบแจ้งเตือนงานที่จ่ายแล้ว รอดำเนินการ */}
         {pendingAssignedCount > 0 && (

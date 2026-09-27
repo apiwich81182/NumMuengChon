@@ -12,8 +12,8 @@ export default async function NewJobPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-7 border border-slate-200/80">
+    <main className="min-h-screen bg-slate-50 py-6 sm:py-8 px-4 sm:px-6 lg:px-8 xl:px-10">
+      <div className="w-full max-w-[1536px] mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-7 lg:p-8 border border-slate-200/80">
         <div className="mb-6 pb-4 border-b border-slate-100">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
             <span>🚛 บันทึกส่งงานสูบส้วม</span>

@@ -18,6 +18,8 @@ import {
   ExternalLink,
   History,
 } from "lucide-react";
+import DispatchLoader from "@/components/animations/DispatchLoader";
+import GpsRadarBadge from "@/components/animations/GpsRadarBadge";
 
 interface Vehicle {
   id: string;
@@ -71,7 +73,9 @@ export default function AssignJobForm({
 }: AssignJobFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [isAssignSuccess, setIsAssignSuccess] = useState(false);
   const [isSearchingPhone, setIsSearchingPhone] = useState(false);
+  const [isGpsSearching, setIsGpsSearching] = useState(false);
 
   // Form states
   const [phone, setPhone] = useState(initialPhone);
@@ -147,13 +151,16 @@ export default function AssignJobForm({
       return;
     }
 
+    setIsGpsSearching(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setIsGpsSearching(false);
         setLatitude(pos.coords.latitude.toFixed(6));
         setLongitude(pos.coords.longitude.toFixed(6));
         toast.success("บันทึกพิกัดตำแหน่งปัจจุบันสำเร็จ");
       },
       (err) => {
+        setIsGpsSearching(false);
         toast.error("ไม่สามารถระบุพิกัดได้: " + err.message);
       },
       { enableHighAccuracy: true }
@@ -200,9 +207,12 @@ export default function AssignJobForm({
         return;
       }
 
-      toast.success("มอบหมายงานสำเร็จ และแจ้งเตือน LINE เรียบร้อย!");
-      router.push("/jobs");
-      router.refresh();
+      setIsAssignSuccess(true);
+      setTimeout(() => {
+        toast.success("มอบหมายงานสำเร็จ และแจ้งเตือน LINE เรียบร้อย!");
+        router.push("/jobs");
+        router.refresh();
+      }, 1400);
     } catch (error) {
       console.error("Assign error:", error);
       toast.error(formatUserErrorMessage(error, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อจ่ายงานได้"));
@@ -214,8 +224,9 @@ export default function AssignJobForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* 1. ส่วนข้อมูลลูกค้า (Customer Details & Auto-lookup) */}
-      <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* 1. ส่วนข้อมูลลูกค้า (Customer Details & Auto-lookup) */}
+        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <User className="w-5 h-5 text-blue-600" />
@@ -331,16 +342,20 @@ export default function AssignJobForm({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-slate-500" />
+              <GpsRadarBadge
+                isSearching={isGpsSearching}
+                hasCoords={Boolean(latitude && longitude)}
+              />
               <span>พิกัด GPS (Latitude / Longitude)</span>
             </label>
             <button
               type="button"
               onClick={handleGetCurrentLocation}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
+              disabled={isGpsSearching}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
             >
               <MapPin className="w-3 h-3" />
-              <span>ใช้พิกัดปัจจุบัน</span>
+              <span>{isGpsSearching ? "กำลังดึงพิกัด..." : "ใช้พิกัดปัจจุบัน"}</span>
             </button>
           </div>
 
@@ -377,8 +392,10 @@ export default function AssignJobForm({
         </div>
       </div>
 
-      {/* 2. ส่วนมอบหมายรถและคนขับ (Assignment & Scheduling) */}
-      <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 space-y-4">
+        {/* คอลัมน์ขวา: ส่วนมอบหมายรถและคนขับ + ปุ่มจ่ายงาน */}
+        <div className="space-y-6">
+          {/* 2. ส่วนมอบหมายรถและคนขับ (Assignment & Scheduling) */}
+          <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 space-y-4">
         <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
           <Truck className="w-5 h-5 text-emerald-600" />
           <span>การมอบหมายรถและพนักงาน</span>
@@ -514,6 +531,15 @@ export default function AssignJobForm({
           )}
         </button>
       </div>
-    </form>
+    </div>
+  </div>
+
+  {/* Paper Plane Dispatch Modal */}
+  <DispatchLoader
+    isOpen={loading}
+    isSuccess={isAssignSuccess}
+    driverName={drivers.find((d) => d.id === selectedDriver1)?.name}
+  />
+</form>
   );
 }

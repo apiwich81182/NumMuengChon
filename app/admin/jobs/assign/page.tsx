@@ -24,8 +24,8 @@ export default async function AssignJobPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1440px] mx-auto space-y-6">
         {/* Navigation & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">

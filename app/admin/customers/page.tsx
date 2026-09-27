@@ -23,8 +23,8 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
   const result = await getCustomers({ page, pageSize: 20, search });
 
   return (
-    <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+      <div className="w-full max-w-[1600px] mx-auto space-y-6">
         <CustomerDirectoryClient
           initialCustomers={result.customers || []}
           initialTotal={result.total || 0}

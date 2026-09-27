@@ -1,0 +1,167 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 1.5rem;
+  padding: 2.25rem 2rem;
+  width: 100%;
+  max-width: 23rem;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 6.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.truckWrapper {
+  position: relative;
+  animation: truckBounce 0.6s ease-in-out infinite alternate;
+  z-index: 2;
+  margin-bottom: 0.5rem;
+}
+
+.smokePuff1,
+.smokePuff2 {
+  position: absolute;
+  border-radius: 50%;
+  background: #cbd5e1;
+  pointer-events: none;
+}
+
+.smokePuff1 {
+  bottom: 1.2rem;
+  left: -0.8rem;
+  width: 10px;
+  height: 10px;
+  animation: smokePuff 1s ease-out infinite;
+}
+
+.smokePuff2 {
+  bottom: 1.4rem;
+  left: -1.2rem;
+  width: 14px;
+  height: 14px;
+  animation: smokePuff 1s ease-out 0.4s infinite;
+}
+
+.road {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.roadLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    #3b82f6 0px,
+    #3b82f6 16px,
+    transparent 16px,
+    transparent 32px
+  );
+  animation: roadMove 0.7s linear infinite;
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.wheel {
+  transform-origin: center;
+  animation: wheelSpin 0.5s linear infinite;
+}
+
+@keyframes truckBounce {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes wheelSpin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes roadMove {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-32px);
+  }
+}
+
+@keyframes smokePuff {
+  0% {
+    transform: scale(0.4) translate(0, 0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6) translate(-20px, -15px);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+

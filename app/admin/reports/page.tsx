@@ -6,6 +6,8 @@ import { Prisma } from "@prisma/client";
 import { summarizeFinances } from "@/lib/finance";
 import { THAI_MONTHS_SHORT } from "@/lib/formatters";
 import { getActiveVehicles } from "@/lib/vehicle-service";
+import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
+import ExportExcelButton from "@/components/ExportExcelButton";
 
 export const revalidate = 0;
 
@@ -245,8 +247,8 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+      <div className="w-full max-w-[1600px] mx-auto space-y-6">
         {/* หัวกระดาษ */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -258,13 +260,13 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
-            <a
-              href={`/api/export/reports?${exportParams.toString()}`}
-              target="_blank"
+            <ExportExcelButton
+              exportUrl={`/api/export/reports?${exportParams.toString()}`}
+              defaultFilename={`income-expense-${targetYear}.csv`}
               className="px-3 sm:px-4 py-2 bg-[#027a48] hover:bg-[#02643c] text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer text-center"
             >
-              📥 Export CSV
-            </a>
+              📥 ส่งออก Excel
+            </ExportExcelButton>
             <Link
               href="/admin/dashboard"
               className="px-3 sm:px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs sm:text-sm font-medium border border-slate-200 transition flex items-center justify-center text-center"
@@ -274,128 +276,17 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        {/* แถบตัวกรอง */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <form method="GET" className="space-y-4">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-              {/* แถบเลือกประเภทช่วงเวลา */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold overflow-x-auto no-scrollbar w-full md:w-fit">
-                {[
-                  { id: "weekly", label: "📅 รายสัปดาห์" },
-                  { id: "monthly", label: "🗓️ รายเดือน" },
-                  { id: "yearly", label: "📆 รายปี" },
-                  { id: "custom", label: "⚙️ เลือกช่วงเอง" },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/admin/reports?period=${item.id}${vehicleId ? `&vehicleId=${vehicleId}` : ""}${
-                      item.id === "yearly" ? `&year=${targetYear}` : ""
-                    }${item.id === "monthly" ? `&year=${targetYear}&month=${targetMonth}` : ""}`}
-                    className={`flex-1 sm:flex-initial text-center px-3 py-1.5 rounded-lg transition whitespace-nowrap ${
-                      period === item.id
-                        ? "bg-white text-slate-900 shadow-sm font-bold"
-                        : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-
-              {/* เลือกรถ */}
-              <div className="w-full md:w-auto">
-                <select
-                  name="vehicleId"
-                  defaultValue={vehicleId}
-                  className="w-full md:w-56 p-2.5 sm:p-2 text-xs border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-800 outline-none focus:border-blue-500"
-                >
-                  <option value="">ทุกคันรถ (ภาพรวม)</option>
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.plateNumber}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <input type="hidden" name="period" value={period} />
-
-            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
-              <div className="w-full sm:w-auto">
-                {period === "weekly" && (
-                  <span className="text-slate-500 font-medium">ย้อนหลัง 7 วัน นับจากปัจจุบัน</span>
-                )}
-
-                {period === "monthly" && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-slate-600 font-medium">ระบุเดือน/ปี:</span>
-                    <select
-                      name="month"
-                      defaultValue={targetMonth}
-                      className="p-2 sm:p-1.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none flex-1 sm:flex-none"
-                    >
-                      {MONTH_NAMES.map((m, idx) => (
-                        <option key={idx + 1} value={idx + 1}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      name="year"
-                      defaultValue={targetYear}
-                      className="w-24 sm:w-20 p-2 sm:p-1.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none flex-1 sm:flex-none"
-                    />
-                  </div>
-                )}
-
-                {period === "yearly" && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-slate-600 font-medium">ระบุปี (ค.ศ.):</span>
-                    <input
-                      type="number"
-                      name="year"
-                      defaultValue={targetYear}
-                      className="w-24 p-2 sm:p-1.5 border border-slate-200 rounded-lg bg-slate-50 font-medium text-slate-800 outline-none"
-                    />
-                    <span className="text-slate-400">(พ.ศ. {targetYear + 543})</span>
-                  </div>
-                )}
-
-                {period === "custom" && (
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <span className="text-slate-600 font-medium whitespace-nowrap">จาก:</span>
-                      <input
-                        type="date"
-                        name="startDate"
-                        defaultValue={startDateParam}
-                        className="p-2 sm:p-1.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none w-full sm:w-auto"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <span className="text-slate-400 whitespace-nowrap sm:inline">ถึง:</span>
-                      <input
-                        type="date"
-                        name="endDate"
-                        defaultValue={endDateParam}
-                        className="p-2 sm:p-1.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 outline-none w-full sm:w-auto"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#0c1322] hover:bg-black text-white rounded-xl font-semibold transition shadow-sm text-center"
-              >
-                กรองข้อมูล
-              </button>
-            </div>
-          </form>
-        </div>
+        {/* แถบตัวกรองอัตโนมัติ (Instant Filter Bar) */}
+        <ReportsFilterBar
+          vehicles={vehicles.map((v) => ({ id: v.id, plateNumber: v.plateNumber }))}
+          period={period}
+          vehicleId={vehicleId}
+          targetYear={targetYear}
+          targetMonth={targetMonth}
+          startDateParam={startDateParam}
+          endDateParam={endDateParam}
+          monthNames={MONTH_NAMES}
+        />
 
         {/* บัตรสรุปตัวเลข 3 ใบ */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">

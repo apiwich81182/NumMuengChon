@@ -23,6 +23,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
+import GpsRadarBadge from "@/components/animations/GpsRadarBadge";
+import TruckLoader from "@/components/animations/TruckLoader";
 
 interface CompleteJobFormProps {
   job: {
@@ -130,6 +132,10 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
 
       if (latToSend) formData.set("latitude", latToSend);
       if (lngToSend) formData.set("longitude", lngToSend);
+
+      if (!beforePreview) formData.set("clearBeforePhoto", "true");
+      if (!afterPreview) formData.set("clearAfterPhoto", "true");
+      if (!slipPreview) formData.set("clearSlipPhoto", "true");
 
       // จัดการย่อรูปภาพ
       const beforePhoto = formData.get("beforePhoto") as File;
@@ -416,16 +422,30 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
                   />
                   <div
                     onClick={() => beforeInputRef.current?.click()}
-                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
+                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden group"
                   >
                     {beforePreview ? (
-                      <Image
-                        src={beforePreview}
-                        alt="Before"
-                        fill
-                        className="object-cover rounded-xl"
-                        unoptimized
-                      />
+                      <>
+                        <Image
+                          src={beforePreview}
+                          alt="Before"
+                          fill
+                          className="object-cover rounded-xl"
+                          unoptimized
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBeforePreview(null);
+                            if (beforeInputRef.current) beforeInputRef.current.value = "";
+                          }}
+                          className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer z-10 shadow-sm"
+                          title="ถ่ายรูปใหม่"
+                        >
+                          ✕ ถ่ายใหม่
+                        </button>
+                      </>
                     ) : (
                       <div className="text-center text-slate-400">
                         <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
@@ -448,16 +468,30 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
                   />
                   <div
                     onClick={() => afterInputRef.current?.click()}
-                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
+                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden group"
                   >
                     {afterPreview ? (
-                      <Image
-                        src={afterPreview}
-                        alt="After"
-                        fill
-                        className="object-cover rounded-xl"
-                        unoptimized
-                      />
+                      <>
+                        <Image
+                          src={afterPreview}
+                          alt="After"
+                          fill
+                          className="object-cover rounded-xl"
+                          unoptimized
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAfterPreview(null);
+                            if (afterInputRef.current) afterInputRef.current.value = "";
+                          }}
+                          className="absolute top-2 right-2 px-2 py-0.5 bg-black/75 hover:bg-rose-600 text-white text-[10px] font-semibold rounded-md transition cursor-pointer z-10 shadow-sm"
+                          title="ถ่ายรูปใหม่"
+                        >
+                          ✕ ถ่ายใหม่
+                        </button>
+                      </>
                     ) : (
                       <div className="text-center text-slate-400">
                         <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
@@ -482,16 +516,30 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
                   />
                   <div
                     onClick={() => slipInputRef.current?.click()}
-                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden"
+                    className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition relative overflow-hidden group"
                   >
                     {slipPreview ? (
-                      <Image
-                        src={slipPreview}
-                        alt="Slip"
-                        fill
-                        className="object-cover rounded-xl"
-                        unoptimized
-                      />
+                      <>
+                        <Image
+                          src={slipPreview}
+                          alt="Slip"
+                          fill
+                          className="object-contain bg-slate-900 rounded-xl"
+                          unoptimized
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSlipPreview(null);
+                            if (slipInputRef.current) slipInputRef.current.value = "";
+                          }}
+                          className="absolute top-2 right-2 px-2.5 py-1 bg-black/75 hover:bg-rose-600 text-white text-[11px] font-semibold rounded-lg transition cursor-pointer z-10 shadow-sm"
+                          title="ถ่ายรูปใหม่"
+                        >
+                          ✕ ถ่ายใหม่
+                        </button>
+                      </>
                     ) : (
                       <div className="text-center text-slate-400">
                         <Camera className="w-6 h-6 mx-auto mb-1 text-slate-400" />
@@ -507,10 +555,9 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      coords?.lat ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-                    }`}
+                  <GpsRadarBadge
+                    isSearching={gpsLoading}
+                    hasCoords={Boolean(coords?.lat && coords?.lng)}
                   />
                   <span className="font-bold text-slate-800 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-emerald-600" />
@@ -587,6 +634,13 @@ export default function CompleteJobForm({ job }: CompleteJobFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Truck Moving Loading Modal */}
+      <TruckLoader
+        isOpen={loading}
+        title="กำลังบันทึกจบงาน..."
+        description={compressingText || "กำลังส่งข้อมูลผลงานและแจ้งเตือนเข้า LINE กลุ่ม..."}
+      />
     </form>
   );
 }

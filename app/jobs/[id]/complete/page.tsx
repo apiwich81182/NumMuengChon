@@ -53,8 +53,8 @@ export default async function CompleteJobPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-7 border border-slate-200/80">
+    <main className="min-h-screen bg-slate-50 py-6 sm:py-8 px-4 sm:px-6 lg:px-8 xl:px-10">
+      <div className="w-full max-w-[1536px] mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-7 lg:p-8 border border-slate-200/80">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <Link

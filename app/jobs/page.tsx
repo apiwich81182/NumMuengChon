@@ -8,6 +8,8 @@ import Pagination from "@/components/Pagination";
 import { formatCurrency, formatDateTh, formatTimeTh } from "@/lib/formatters";
 import { getActiveVehicles } from "@/lib/vehicle-service";
 import { getStaffAndDrivers } from "@/lib/user-service";
+import JobFilterBar from "@/components/jobs/JobFilterBar";
+import EmptySearchState from "@/components/animations/EmptySearchState";
 import {
   Phone,
   Navigation,
@@ -172,8 +174,8 @@ export default async function JobsPage({ searchParams }: PageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+      <div className="w-full max-w-[1600px] mx-auto space-y-6">
         {/* หัวกระดาษ */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -441,194 +443,29 @@ export default async function JobsPage({ searchParams }: PageProps) {
     {/* ประวัติงานที่เสร็จแล้ว (แสดงเมื่อเลือก ทั้งหมด หรือ เสร็จสิ้นแล้ว) */}
     {statusTab !== "assigned" && (
       <>
-        {/* แถบตัวกรอง (Collapsible on Mobile) */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-          <form method="GET" action="/jobs" className="space-y-3 text-xs">
-            {/* ซ่อนค่า Tab ปัจจุบันไว้ในฟอร์ม */}
-            {statusTab !== "all" && <input type="hidden" name="tab" value={statusTab} />}
-
-            {/* แถวบน: ปุ่มลัดช่วงเวลา (เห็นตลอดทั้งบนมือถือและคอม) */}
-            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <div className="flex items-center gap-1.5 flex-nowrap">
-                <span className="text-slate-500 font-medium whitespace-nowrap">ช่วงเวลา:</span>
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-                  {[
-                    { id: "today", label: "วันนี้" },
-                    { id: "this_month", label: "เดือนนี้" },
-                    { id: "this_year", label: "ปีนี้" },
-                    { id: "all", label: "ทั้งหมด" },
-                  ].map((item) => (
-                    <Link
-                      key={item.id}
-                      href={`/jobs?period=${item.id}${
-                        statusTab !== "all" ? `&tab=${statusTab}` : ""
-                      }${selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""}${
-                        selectedUserId ? `&userId=${selectedUserId}` : ""
-                      }${
-                        selectedPaymentMethod !== "ALL" ? `&paymentMethod=${selectedPaymentMethod}` : ""
-                      }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
-                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-semibold transition whitespace-nowrap ${
-                        period === item.id && !startDateParam && !endDateParam
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <input type="hidden" name="period" value={period} />
-
-            {/* แถบตัวกรองละเอียด (พับเก็บได้บนมือถือ) */}
-            <details
-              open={Boolean(
-                selectedVehicleId ||
-                  selectedUserId ||
-                  selectedPaymentMethod !== "ALL" ||
-                  selectedSort !== "desc" ||
-                  startDateParam ||
-                  endDateParam
-              )}
-              className="group pt-2 border-t border-slate-100"
-            >
-              <summary className="flex items-center justify-between cursor-pointer list-none py-1 text-slate-600 hover:text-slate-900 font-semibold select-none">
-                <span className="flex items-center gap-1.5">
-                  <span>🔍</span>
-                  <span>ตัวกรองเพิ่มเติม</span>
-                  {(selectedVehicleId ||
-                    selectedUserId ||
-                    selectedPaymentMethod !== "ALL" ||
-                    startDateParam ||
-                    endDateParam) && (
-                    <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold">
-                      เปิดใช้งานอยู่
-                    </span>
-                  )}
-                </span>
-                <span className="text-slate-400 group-open:rotate-180 transition-transform text-xs">
-                  ▼
-                </span>
-              </summary>
-
-              <div className="pt-3 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-slate-500 font-medium">คันรถ</label>
-                    <select
-                      name="vehicleId"
-                      defaultValue={selectedVehicleId}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                    >
-                      <option value="">ทั้งหมด</option>
-                      {vehicles.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.plateNumber}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {currentUser.role === "ADMIN" && (
-                    <div className="space-y-1">
-                      <label className="text-slate-500 font-medium">พนักงาน</label>
-                      <select
-                        name="userId"
-                        defaultValue={selectedUserId}
-                        className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                      >
-                        <option value="">ทั้งหมด</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <label className="text-slate-500 font-medium">วิธีชำระเงิน</label>
-                    <select
-                      name="paymentMethod"
-                      defaultValue={selectedPaymentMethod}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                    >
-                      <option value="ALL">ทั้งหมด</option>
-                      <option value="CASH">เงินสด</option>
-                      <option value="TRANSFER">เงินโอน</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-500 font-medium">เรียงลำดับ</label>
-                    <select
-                      name="sort"
-                      defaultValue={selectedSort}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                    >
-                      <option value="desc">ล่าสุด → เก่าสุด</option>
-                      <option value="asc">เก่าสุด → ล่าสุด</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* แถวล่าง: ระบุวันที่ + ปุ่มล้าง/ค้นหา */}
-                <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5 text-slate-500 flex-wrap">
-                    <span className="text-xs">ระบุวันที่:</span>
-                    <input
-                      type="date"
-                      name="startDate"
-                      defaultValue={startDateParam}
-                      className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white text-xs"
-                    />
-                    <span>ถึง</span>
-                    <input
-                      type="date"
-                      name="endDate"
-                      defaultValue={endDateParam}
-                      className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white text-xs"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Link
-                      href="/jobs"
-                      className="flex-1 sm:flex-none text-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition"
-                    >
-                      ล้างตัวกรอง
-                    </Link>
-                    <button
-                      type="submit"
-                      className="flex-1 sm:flex-none px-5 py-2 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-xl transition shadow-xs cursor-pointer"
-                    >
-                      ค้นหา
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </details>
-          </form>
-        </div>
+        {/* แถบตัวกรองอัตโนมัติ (Instant Filter Bar) */}
+        <JobFilterBar
+          vehicles={vehicles.map((v) => ({ id: v.id, plateNumber: v.plateNumber }))}
+          users={users.map((u) => ({ id: u.id, name: u.name }))}
+          isAdmin={currentUser.role === "ADMIN"}
+          statusTab={statusTab}
+          period={period}
+          selectedVehicleId={selectedVehicleId}
+          selectedUserId={selectedUserId}
+          selectedPaymentMethod={selectedPaymentMethod}
+          selectedSort={selectedSort}
+          startDateParam={startDateParam}
+          endDateParam={endDateParam}
+        />
 
         {/* รายการการ์ดงาน (หน้าตาเดิมแบบรูปแรก) */}
         <div className="space-y-3">
           {jobs.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 sm:p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-2xl shadow-2xs">
-                📋
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-slate-800 text-base">
-                  ยังไม่มีประวัติงานสูบส้วมในเงื่อนไขนี้
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  คุณสามารถปรับเปลี่ยนตัวกรองช่วงเวลา หรือเริ่มบันทึกส่งงานหน้างานใหม่ได้ทันที
-                </p>
-              </div>
+            <EmptySearchState
+              title="ยังไม่มีประวัติงานสูบส้วมในเงื่อนไขนี้"
+              description="คุณสามารถปรับเปลี่ยนตัวกรองช่วงเวลา หรือเริ่มบันทึกส่งงานหน้างานใหม่ได้ทันที"
+              className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 sm:p-12 shadow-xs"
+            >
               <div className="pt-2 flex items-center justify-center gap-3">
                 <Link
                   href="/jobs"
@@ -643,7 +480,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
                   <span>+ ส่งงานทันที</span>
                 </Link>
               </div>
-            </div>
+            </EmptySearchState>
           ) : (
             jobs.map((job) => {
               const jobDate = new Date(job.completedAt || job.createdAt);

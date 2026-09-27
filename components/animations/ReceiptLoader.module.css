@@ -1,0 +1,219 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 1.5rem;
+  padding: 2.25rem 2rem;
+  width: 100%;
+  max-width: 22rem;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 1.25rem;
+  perspective: 500px;
+}
+
+.printerSlot {
+  position: relative;
+  z-index: 3;
+  width: 7.5rem;
+  height: 0.9rem;
+  background: #334155;
+  border-radius: 0.4rem 0.4rem 0.2rem 0.2rem;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slotMouth {
+  width: 5.5rem;
+  height: 0.25rem;
+  background: #0f172a;
+  border-radius: 9999px;
+}
+
+.receipt {
+  position: relative;
+  z-index: 2;
+  width: 5.25rem;
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+  border-top: none;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  padding: 0.5rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: printSlideDown 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  transform-origin: top center;
+}
+
+.receiptZigzag {
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #fafaf9,
+    #fafaf9 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.receiptLineHeader {
+  width: 75%;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+  margin-bottom: 0.4rem;
+}
+
+.receiptLine1 {
+  width: 90%;
+  height: 2.5px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin-bottom: 0.25rem;
+}
+
+.receiptLine2 {
+  width: 65%;
+  height: 2.5px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin-bottom: 0.25rem;
+  align-self: flex-start;
+  margin-left: 5%;
+}
+
+.receiptLineTotal {
+  width: 85%;
+  height: 3px;
+  background: #f43f5e;
+  border-radius: 2px;
+  margin-top: 0.35rem;
+}
+
+.stampPaid {
+  position: absolute;
+  bottom: 0.5rem;
+  padding: 0.15rem 0.4rem;
+  border: 1.5px dashed #e11d48;
+  color: #e11d48;
+  font-weight: 800;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  border-radius: 3px;
+  transform: rotate(-12deg);
+  background: rgba(254, 242, 242, 0.9);
+  animation: stampImpact 1.8s ease-in-out infinite;
+}
+
+.floatingCoin {
+  position: absolute;
+  top: 35%;
+  right: 18%;
+  font-size: 1.35rem;
+  animation: floatCoin 2s ease-in-out infinite alternate;
+  z-index: 4;
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+@keyframes printSlideDown {
+  0% {
+    height: 1.5rem;
+    opacity: 0.5;
+  }
+  50% {
+    height: 5.25rem;
+    opacity: 1;
+  }
+  90%, 100% {
+    height: 5.25rem;
+    opacity: 1;
+  }
+}
+
+@keyframes stampImpact {
+  0%, 45% {
+    opacity: 0;
+    transform: scale(2) rotate(15deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.9) rotate(-14deg);
+  }
+  65%, 100% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+}
+
+@keyframes floatCoin {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-8px) rotate(15deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

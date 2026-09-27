@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { checkInAttendance, checkOutAttendance, requestLeave } from "@/actions/attendance";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { toast } from "@/components/Toast";
+import StampSuccessModal from "@/components/animations/StampSuccessModal";
+import GpsRadarBadge from "@/components/animations/GpsRadarBadge";
 
 type AttendanceRecord = {
   checkInAt: Date | string | null;
@@ -11,7 +14,17 @@ type AttendanceRecord = {
 };
 
 export default function AttendanceClient({ todayRecord }: { todayRecord: AttendanceRecord | null }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [stampModal, setStampModal] = useState<{
+    isOpen: boolean;
+    type: "IN" | "OUT";
+    timeText: string;
+  }>({
+    isOpen: false,
+    type: "IN",
+    timeText: "",
+  });
   const { coords } = useGeolocation();
 
   async function handleCheckIn() {
@@ -24,16 +37,34 @@ export default function AttendanceClient({ todayRecord }: { todayRecord: Attenda
 
     const res = await checkInAttendance(formData);
     setLoading(false);
-    if (res.success) toast.success("เช็กอินเข้างานเรียบร้อยแล้ว");
-    else toast.error(res.error || "เกิดข้อผิดพลาด");
+    if (res.success) {
+      setStampModal({
+        isOpen: true,
+        type: "IN",
+        timeText: new Date().toLocaleTimeString("th-TH") + " น.",
+      });
+      toast.success("เช็กอินเข้างานเรียบร้อยแล้ว");
+      router.refresh();
+    } else {
+      toast.error(res.error || "เกิดข้อผิดพลาด");
+    }
   }
 
   async function handleCheckOut() {
     setLoading(true);
     const res = await checkOutAttendance();
     setLoading(false);
-    if (res.success) toast.success("ลงเวลาออกงานเรียบร้อยแล้ว");
-    else toast.error(res.error || "เกิดข้อผิดพลาด");
+    if (res.success) {
+      setStampModal({
+        isOpen: true,
+        type: "OUT",
+        timeText: new Date().toLocaleTimeString("th-TH") + " น.",
+      });
+      toast.success("ลงเวลาออกงานเรียบร้อยแล้ว");
+      router.refresh();
+    } else {
+      toast.error(res.error || "เกิดข้อผิดพลาด");
+    }
   }
 
   async function handleLeave(e: React.FormEvent<HTMLFormElement>) {
@@ -73,6 +104,17 @@ export default function AttendanceClient({ todayRecord }: { todayRecord: Attenda
                 : "-"}
             </span>
           </p>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 pt-2 border-t border-slate-200/60 mt-2">
+            <GpsRadarBadge
+              isSearching={loading}
+              hasCoords={Boolean(coords.lat && coords.lng)}
+            />
+            <span>
+              {coords.lat
+                ? `พิกัด GPS พร้อมบันทึก (±${coords.accuracy || "0"} ม.)`
+                : "กำลังตรวจจับสัญญาณพิกัด GPS..."}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -126,6 +168,14 @@ export default function AttendanceClient({ todayRecord }: { todayRecord: Attenda
           </button>
         </form>
       </div>
+
+      {/* Stamp Animation Modal */}
+      <StampSuccessModal
+        isOpen={stampModal.isOpen}
+        type={stampModal.type}
+        timeText={stampModal.timeText}
+        onClose={() => setStampModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

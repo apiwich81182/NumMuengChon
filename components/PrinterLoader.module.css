@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+
+@property --la-12-page {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --la-12-p {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalOverlay :global(.la-12) {
+  --bg: #f1f3f7;
+  --surface: #ffffff;
+  --ink: #0e1219;
+  --muted: #636d7d;
+  --line: #e2e6ee;
+  --shell: #dfe4ec;
+  --shell-2: #c3cad6;
+  --paper: #ffffff;
+  --lines: #c9d1de;
+  --acc: #027a48;
+  --ok: #0f9d63;
+  --ring: #027a48;
+  --shadow: rgba(14, 18, 25, 0.16);
+  --dur: 4s;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  position: relative;
+  width: auto;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.modalOverlay :global(.la-12),
+.modalOverlay :global(.la-12 *),
+.modalOverlay :global(.la-12 *::before),
+.modalOverlay :global(.la-12 *::after) {
+  box-sizing: border-box;
+}
+
+@supports (color: oklch(0 0 0)) {
+  .modalOverlay :global(.la-12) {
+    --acc: oklch(52% 0.18 150);
+    --ok: oklch(62% 0.15 158);
+  }
+}
+
+.modalOverlay :global(.la-12__card) {
+  position: relative;
+  inline-size: min(23rem, 100%);
+  padding: 2.2rem 1.6rem 1.6rem;
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  text-align: center;
+  border-radius: 1.6rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 #fff inset, 0 36px 64px -40px var(--shadow), 0 20px 40px -15px rgba(0, 0, 0, 0.3);
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modalOverlay :global(.la-12__machine) {
+  position: relative;
+  inline-size: 9.5rem;
+  block-size: 8rem;
+  display: grid;
+  place-items: start center;
+}
+
+.modalOverlay :global(.la-12__tray) {
+  position: absolute;
+  inset-block-start: 0.2rem;
+  inline-size: 5.6rem;
+  block-size: 0.7rem;
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: linear-gradient(180deg, var(--shell-2), var(--shell));
+}
+
+.modalOverlay :global(.la-12__body) {
+  position: absolute;
+  inset-block-start: 0.85rem;
+  inline-size: 8.2rem;
+  block-size: 2.9rem;
+  border-radius: 0.7rem;
+  background: linear-gradient(180deg, var(--shell), var(--shell-2));
+  box-shadow: 0 10px 20px -14px var(--shadow), inset 0 1px 0 #fff;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  padding-inline: 0.7rem;
+  gap: 0.35rem;
+}
+
+.modalOverlay :global(.la-12__led) {
+  inline-size: 0.42rem;
+  block-size: 0.42rem;
+  border-radius: 999px;
+  background: var(--acc);
+  box-shadow: 0 0 6px var(--acc);
+  animation: la-12-led 1.05s steps(2, jump-none) infinite;
+}
+
+@keyframes la-12-led {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.modalOverlay :global(.la-12__vent) {
+  inline-size: 3.2rem;
+  block-size: 0.24rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 18%, transparent);
+}
+
+.modalOverlay :global(.la-12__slot) {
+  position: absolute;
+  inset-block-start: 3.55rem;
+  inline-size: 8.2rem;
+  block-size: 4.4rem;
+  clip-path: inset(0 0 -140% 0);
+}
+
+.modalOverlay :global(.la-12__slot::before) {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0.5rem;
+  block-size: 0.34rem;
+  border-radius: 0 0 0.2rem 0.2rem;
+  background: linear-gradient(180deg, #2a2f39, #161a20);
+  z-index: 3;
+}
+
+.modalOverlay :global(.la-12__sheet) {
+  position: absolute;
+  inset-block-start: 0.2rem;
+  inset-inline-start: 1.1rem;
+  inline-size: 6rem;
+  block-size: 4rem;
+  border-radius: 0.15rem;
+  background: var(--paper);
+  box-shadow: 0 8px 16px -10px var(--shadow), 0 0 0 1px color-mix(in oklab, var(--ink) 10%, transparent);
+  display: grid;
+  align-content: start;
+  gap: 0.34rem;
+  padding: 0.5rem 0.55rem;
+  translate: 0 -3.4rem;
+  z-index: 2;
+  -webkit-mask-image: linear-gradient(#000 var(--la-12-p, 70%), transparent var(--la-12-p, 70%));
+  mask-image: linear-gradient(#000 var(--la-12-p, 70%), transparent var(--la-12-p, 70%));
+  animation: la-12-feed var(--dur) cubic-bezier(0.45, 0, 0.55, 1) infinite, la-12-reveal var(--dur) linear infinite;
+}
+
+.modalOverlay :global(.la-12__sheet i) {
+  display: block;
+  block-size: 0.22rem;
+  border-radius: 999px;
+  background: var(--lines);
+}
+
+.modalOverlay :global(.la-12__sheet i:first-child) {
+  block-size: 0.34rem;
+  inline-size: 70%;
+  background: color-mix(in oklab, var(--ink) 45%, transparent);
+}
+
+.modalOverlay :global(.la-12__sheet i:nth-child(4)) {
+  inline-size: 88%;
+}
+
+.modalOverlay :global(.la-12__sheet i:nth-child(6)) {
+  inline-size: 46%;
+}
+
+@keyframes la-12-feed {
+  0% {
+    translate: 0 -3.4rem;
+  }
+  78%,
+  100% {
+    translate: 0 0.35rem;
+  }
+}
+
+@keyframes la-12-reveal {
+  0% {
+    --la-12-p: 0%;
+  }
+  74%,
+  100% {
+    --la-12-p: 100%;
+  }
+}
+
+.modalOverlay :global(.la-12__copy) {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.modalOverlay :global(.la-12__label) {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.modalOverlay :global(.la-12__ready) {
+  display: none;
+}
+
+.modalOverlay :global(.la-12__name) {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modalOverlay :global(.la-12__track) {
+  inline-size: 100%;
+  block-size: 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 9%, transparent);
+  overflow: hidden;
+}
+
+.modalOverlay :global(.la-12__fill) {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--acc) 60%, white), var(--acc));
+  animation: la-12-bar var(--dur) steps(5, jump-none) infinite;
+}
+
+@keyframes la-12-bar {
+  from {
+    inline-size: 20%;
+  }
+  to {
+    inline-size: 100%;
+  }
+}
+
+.modalOverlay :global(.la-12__page) {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  counter-reset: la-12-page var(--la-12-page, 3);
+  animation: la-12-count var(--dur) steps(5, jump-none) infinite;
+}
+
+.modalOverlay :global(.la-12__page::after) {
+  content: "Page " counter(la-12-page) " of 5";
+}
+
+@keyframes la-12-count {
+  from {
+    --la-12-page: 1;
+  }
+  to {
+    --la-12-page: 5;
+  }
+}
+
+/* Ready State */
+.modalOverlay :global(.la-12.is-ready .la-12__sheet),
+.modalOverlay :global(.la-12.is-ready .la-12__led),
+.modalOverlay :global(.la-12.is-ready .la-12__fill),
+.modalOverlay :global(.la-12.is-ready .la-12__page) {
+  animation: none;
+}
+
+.modalOverlay :global(.la-12.is-ready .la-12__sheet) {
+  translate: 0 0.35rem;
+  --la-12-p: 100%;
+}
+
+.modalOverlay :global(.la-12.is-ready .la-12__led) {
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+  opacity: 1;
+}
+
+.modalOverlay :global(.la-12.is-ready .la-12__fill) {
+  inline-size: 100%;
+  background: var(--ok);
+}
+
+.modalOverlay :global(.la-12.is-ready .la-12__page) {
+  --la-12-page: 5;
+}
+
+.modalOverlay :global(.la-12.is-ready .la-12__load) {
+  display: none;
+}
+
+.modalOverlay :global(.la-12.is-ready .la-12__ready) {
+  display: inline;
+  color: var(--ok);
+}
+
+.modalOverlay :global(.la-12-close-btn) {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+  z-index: 30;
+}
+
+.modalOverlay :global(.la-12-close-btn:hover) {
+  background: #e2e8f0;
+  color: #0f172a;
+}

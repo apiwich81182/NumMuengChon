@@ -237,8 +237,8 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-5 sm:space-y-6">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+      <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6">
         {/* ส่วนหัว */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>

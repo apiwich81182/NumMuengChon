@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveOrUpdateCustomer, deleteCustomer, getCustomerHistory } from "@/actions/customers";
@@ -22,6 +22,9 @@ import {
   Loader2,
   History,
 } from "lucide-react";
+import EmptySearchState from "@/components/animations/EmptySearchState";
+import CustomerSaveLoader from "@/components/animations/CustomerSaveLoader";
+import GpsRadarBadge from "@/components/animations/GpsRadarBadge";
 
 interface CustomerItem {
   id: string;
@@ -76,6 +79,38 @@ export default function CustomerDirectoryClient({
 }: CustomerDirectoryClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState(searchQuery);
+  const [isPending, startTransition] = useTransition();
+  const isFirstRender = useRef(true);
+
+  // Instant Debounced Search
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      startTransition(() => {
+        const p = new URLSearchParams();
+        if (search.trim()) p.set("search", search.trim());
+        p.set("page", "1");
+        router.push(`/admin/customers?${p.toString()}`);
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, router]);
+
+  // Sync state if searchQuery prop changes externally
+  useEffect(() => {
+    setSearch(searchQuery);
+  }, [searchQuery]);
+
+  function handleClearSearch() {
+    setSearch("");
+    startTransition(() => {
+      router.push("/admin/customers");
+    });
+  }
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerItem | null>(null);
   const [saving, setSaving] = useState(false);
@@ -112,6 +147,28 @@ export default function CustomerDirectoryClient({
   const [formLatitude, setFormLatitude] = useState("");
   const [formLongitude, setFormLongitude] = useState("");
   const [formNote, setFormNote] = useState("");
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+
+  function handleGetLocation() {
+    if (!navigator.geolocation) {
+      toast.error("อุปกรณ์ไม่รองรับการระบุพิกัด GPS");
+      return;
+    }
+    setIsDetectingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormLatitude(pos.coords.latitude.toFixed(6));
+        setFormLongitude(pos.coords.longitude.toFixed(6));
+        setIsDetectingGps(false);
+        toast.success("ดึงพิกัด GPS ปัจจุบันสำเร็จ");
+      },
+      () => {
+        setIsDetectingGps(false);
+        toast.error("ไม่สามารถดึงพิกัด GPS ได้ กรุณาเปิดการระบุตำแหน่งบนอุปกรณ์");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   function openCreateModal() {
     setEditingCustomer(null);
@@ -230,39 +287,56 @@ export default function CustomerDirectoryClient({
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+      {/* Instant Search Bar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4">
+        <form onSubmit={handleSearchSubmit} className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            {isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+            ) : (
               <Search className="w-4 h-4" />
-            </div>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาด้วย เบอร์โทรศัพท์, ชื่อลูกค้า หรือ ที่อยู่..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition font-medium"
-            />
+            )}
           </div>
-          <button
-            type="submit"
-            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition shadow-xs cursor-pointer"
-          >
-            ค้นหา
-          </button>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ค้นหาทันทีด้วย เบอร์โทรศัพท์, ชื่อลูกค้า หรือ ที่อยู่..."
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition font-medium"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              title="ล้างคำค้นหา"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
+            >
+              <X className="w-4 h-4 bg-slate-100 hover:bg-slate-200 rounded-full p-0.5" />
+            </button>
+          )}
         </form>
       </div>
 
       {/* Customer List / Table */}
       {initialCustomers.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-          <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-600 font-semibold text-base">ไม่พบข้อมูลลูกค้า</p>
-          <p className="text-slate-400 text-xs mt-1">
-            {search ? "ลองเปลี่ยนคำค้นหาใหม่" : "เมื่อมีการบันทึกงาน ระบบจะเก็บข้อมูลลูกค้าให้อัตโนมัติ"}
-          </p>
-        </div>
+        <EmptySearchState
+          title="ไม่พบข้อมูลลูกค้า"
+          description={
+            search
+              ? `ไม่พบข้อมูลที่ตรงกับ "${search}" ลองเปลี่ยนเบอร์โทรหรือชื่อลูกค้าใหม่`
+              : "เมื่อมีการบันทึกงาน ระบบจะเก็บข้อมูลลูกค้าให้อัตโนมัติ"
+          }
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm"
+        >
+          {search && (
+            <button
+              onClick={handleClearSearch}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+            >
+              ล้างคำค้นหา
+            </button>
+          )}
+        </EmptySearchState>
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="divide-y divide-slate-100">
@@ -471,26 +545,45 @@ export default function CustomerDirectoryClient({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Latitude</label>
-                  <input
-                    type="text"
-                    value={formLatitude}
-                    onChange={(e) => setFormLatitude(e.target.value)}
-                    placeholder="เช่น 13.543210"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
-                  />
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <GpsRadarBadge
+                      isSearching={isDetectingGps}
+                      hasCoords={Boolean(formLatitude && formLongitude)}
+                    />
+                    <span>พิกัด GPS ของลูกค้า (Latitude / Longitude)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={isDetectingGps}
+                    className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <MapPin className="w-3 h-3 text-purple-600" />
+                    <span>{isDetectingGps ? "กำลังดึงพิกัด..." : "ดึงพิกัดปัจจุบัน"}</span>
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Longitude</label>
-                  <input
-                    type="text"
-                    value={formLongitude}
-                    onChange={(e) => setFormLongitude(e.target.value)}
-                    placeholder="เช่น 100.278910"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <input
+                      type="text"
+                      value={formLatitude}
+                      onChange={(e) => setFormLatitude(e.target.value)}
+                      placeholder="Latitude เช่น 13.543210"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={formLongitude}
+                      onChange={(e) => setFormLongitude(e.target.value)}
+                      placeholder="Longitude เช่น 100.278910"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -526,6 +619,13 @@ export default function CustomerDirectoryClient({
           </div>
         </div>
       )}
+
+      {/* Customer Save Animation Modal */}
+      <CustomerSaveLoader
+        isOpen={saving}
+        customerName={formName}
+        isEditing={Boolean(editingCustomer)}
+      />
 
       {/* Modal: ประวัติงานของลูกค้า (Full Service History) */}
       {historyModalOpen && historyCustomer && (

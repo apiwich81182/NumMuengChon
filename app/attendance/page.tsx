@@ -20,8 +20,8 @@ export default async function AttendancePage() {
   });
 
   return (
-    <main className="min-h-screen bg-slate-100 py-8 px-4">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+    <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6">
+      <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-slate-200">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-slate-800">⏱️ บันทึกเวลาเข้า-ออกงาน</h1>
           <p className="text-sm text-slate-500">

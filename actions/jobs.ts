@@ -273,9 +273,13 @@ export async function completeJob(formData: FormData) {
       slipPhotoFile && slipPhotoFile.size > 0 ? uploadImageToStorage(slipPhotoFile, "slips") : Promise.resolve(null),
     ]);
 
-    const beforePhotoUrl = newBeforeUrl || existingJob.beforePhotoUrl;
-    const afterPhotoUrl = newAfterUrl || existingJob.afterPhotoUrl;
-    const slipPhotoUrl = newSlipUrl || existingJob.slipPhotoUrl;
+    const clearBefore = formData.get("clearBeforePhoto") === "true";
+    const clearAfter = formData.get("clearAfterPhoto") === "true";
+    const clearSlip = formData.get("clearSlipPhoto") === "true";
+
+    const beforePhotoUrl = newBeforeUrl || (clearBefore ? null : existingJob.beforePhotoUrl);
+    const afterPhotoUrl = newAfterUrl || (clearAfter ? null : existingJob.afterPhotoUrl);
+    const slipPhotoUrl = newSlipUrl || (clearSlip ? null : existingJob.slipPhotoUrl);
 
     // อัปเดตข้อมูลลูกค้า
     let customerId = existingJob.customerId;
