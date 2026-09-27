@@ -3,7 +3,7 @@ import AssignJobForm from "./AssignJobForm";
 import { getActiveVehicles } from "@/lib/vehicle-service";
 import { getActiveDrivers } from "@/lib/user-service";
 import Link from "next/link";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Briefcase, Users } from "lucide-react";
 
 export const metadata = {
   title: "มอบหมายงานสูบส้วม (Dispatch) | ระบบจัดการรถสูบส้วม",
@@ -37,7 +37,8 @@ export default async function AssignJobPage({ searchParams }: PageProps) {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <span>📋 มอบหมายงานใหม่</span>
+                <Briefcase className="w-7 h-7 text-emerald-600" />
+                <span>มอบหมายงานใหม่</span>
               </h1>
               <p className="text-sm text-slate-500">
                 จ่ายงานให้คนขับ ค้นหาประวัติลูกค้าเก่าอัตโนมัติจากเบอร์โทรศัพท์

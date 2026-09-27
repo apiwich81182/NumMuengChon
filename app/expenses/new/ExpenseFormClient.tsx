@@ -8,6 +8,7 @@ import { toast } from "@/components/Toast";
 import { formatUserErrorMessage } from "@/lib/formatters";
 import imageCompression from "browser-image-compression";
 import ReceiptLoader from "@/components/animations/ReceiptLoader";
+import { NotebookPen } from "lucide-react";
 
 interface VehicleOption {
   id: string;
@@ -99,7 +100,10 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
       <div className="w-full max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex justify-between items-center pb-4 border-b border-slate-100">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">➕ บันทึกรายจ่าย</h1>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              <NotebookPen className="w-7 h-7 text-rose-600"/>
+              <span>บันทึกรายจ่าย</span>
+            </h1>
             <p className="text-xs text-slate-500 mt-0.5">ระบุยอดเงิน หมวดหมู่ค่าใช้จ่าย และแนบรูปใบเสร็จ</p>
           </div>
           <Link href="/expenses" className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-600 transition">
@@ -126,7 +130,7 @@ export default function ExpenseFormClient({ vehicles, isAdmin }: Props) {
                   step="0.01"
                   name="amount"
                   required
-                  placeholder="0.00"
+                  placeholder="เช่น 1000.00"
                   className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rose-500 outline-none font-bold text-base text-slate-900 placeholder:text-slate-400"
                 />
               </div>

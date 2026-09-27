@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/auth";
 import { ToastContainer } from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "ระบบจัดการรถสูบส้วม",
-  description: "Waste Truck Operations & Management System",
+  title: "ระบบจัดการรถสูบส้วม | หนุ่มเมืองชน",
+  description: "ระบบบริหารจัดการงานสูบสิ่งปฏิกูลและรถบริการแบบครบวงจร รวดเร็ว แม่นยำ โปร่งใส เรียลไทม์",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -26,18 +26,11 @@ export default async function RootLayout({
 
   return (
     <html lang="th">
-      <body className="antialiased bg-slate-50 min-h-screen text-slate-800">
+      <body className="antialiased bg-slate-50 min-h-screen text-slate-800 selection:bg-blue-600 selection:text-white">
         <ToastContainer />
-        {user ? (
-          <div className="flex flex-col lg:flex-row min-h-screen">
-            <Sidebar user={user} />
-            <div className="flex-1 flex flex-col min-w-0 pb-8">
-              {children}
-            </div>
-          </div>
-        ) : (
-          children
-        )}
+        <AppShell user={user}>
+          {children}
+        </AppShell>
       </body>
     </html>
   );

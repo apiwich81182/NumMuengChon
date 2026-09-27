@@ -9,6 +9,7 @@ import { formatCurrency, formatDateTh, formatTimeTh } from "@/lib/formatters";
 import { getActiveVehicles } from "@/lib/vehicle-service";
 import { getStaffAndDrivers } from "@/lib/user-service";
 import ExpenseFilterBar from "@/components/expenses/ExpenseFilterBar";
+import { ClipboardPen, Fuel } from "lucide-react";
 
 export const revalidate = 0;
 
@@ -125,7 +126,8 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              📕 รายการรายจ่าย
+              <Fuel className="w-7 h-7 text-rose-500" />
+              <span>รายการรายจ่าย</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
               พบทั้งหมด {totalCount} รายการ{" "}
@@ -144,7 +146,8 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
             href="/expenses/new"
             className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm"
           >
-            + บันทึกรายจ่ายใหม่
+            <ClipboardPen className="w-4 h-4 mr-1.5 inline-block" />
+            บันทึกรายจ่ายใหม่
           </Link>
         </div>
 

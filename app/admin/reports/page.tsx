@@ -8,6 +8,15 @@ import { THAI_MONTHS_SHORT } from "@/lib/formatters";
 import { getActiveVehicles } from "@/lib/vehicle-service";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import ExportExcelButton from "@/components/ExportExcelButton";
+import {
+  TrendingUp,
+  Fuel,
+  BarChart3,
+  FileSpreadsheet,
+  ArrowLeft,
+  Calendar,
+  Layers,
+} from "lucide-react";
 
 export const revalidate = 0;
 
@@ -247,36 +256,48 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 text-slate-800 antialiased">
       <div className="w-full max-w-[1600px] mx-auto space-y-6">
-        {/* หัวกระดาษ */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        {/* ========================================================= */}
+        {/* 🌟 1. หัวกระดาษ และปุ่มแอ็กชัน (BUTTON HIERARCHY) */}
+        {/* ========================================================= */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-              📊 สรุปรายงานรายรับ - รายจ่าย
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <BarChart3 className="w-7 h-7 text-violet-400" />
+              <span>รายงานวิเคราะห์ รายรับ - รายจ่าย</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              วิเคราะห์ผลการดำเนินงานและเปรียบเทียบกระแสเงินสด
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
+              วิเคราะห์ผลการดำเนินงานและเปรียบเทียบกระแสเงินสดตามช่วงเวลา
             </p>
           </div>
-          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+
+          {/* Action Buttons: 1 เด่น Primary + Outline Secondary */}
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            {/* Primary Button: ส่งออก Excel */}
             <ExportExcelButton
               exportUrl={`/api/export/reports?${exportParams.toString()}`}
               defaultFilename={`income-expense-${targetYear}.csv`}
-              className="px-3 sm:px-4 py-2 bg-[#027a48] hover:bg-[#02643c] text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer text-center"
+              className="px-3.5 sm:px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold border border-slate-300/90 hover:border-slate-400 transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
             >
-              📥 ส่งออก Excel
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>ส่งออก Excel</span>
             </ExportExcelButton>
+
+            {/* Outline Button: กลับแดชบอร์ด */}
             <Link
               href="/admin/dashboard"
-              className="px-3 sm:px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs sm:text-sm font-medium border border-slate-200 transition flex items-center justify-center text-center"
+              className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold border border-slate-300/90 hover:border-slate-400 transition-all shadow-2xs flex items-center justify-center gap-1.5 shrink-0"
             >
-              ← แดชบอร์ด
+              <ArrowLeft className="w-4 h-4 text-slate-500" />
+              <span>แดชบอร์ด</span>
             </Link>
           </div>
         </div>
 
-        {/* แถบตัวกรองอัตโนมัติ (Instant Filter Bar) */}
+        {/* ========================================================= */}
+        {/* 🌟 2. แถบตัวกรองอัตโนมัติ (Instant Filter Bar) */}
+        {/* ========================================================= */}
         <ReportsFilterBar
           vehicles={vehicles.map((v) => ({ id: v.id, plateNumber: v.plateNumber }))}
           period={period}
@@ -288,61 +309,107 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
           monthNames={MONTH_NAMES}
         />
 
-        {/* บัตรสรุปตัวเลข 3 ใบ */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between sm:block space-y-0 sm:space-y-1">
-            <div>
-              <span className="text-xs text-slate-500 font-medium">รายรับรวม</span>
-              <p className="text-[11px] text-slate-400 hidden sm:block">จากงานสูบที่เสร็จสิ้น</p>
+        {/* ========================================================= */}
+        {/* 🌟 3. บล็อกสถิติหลัก 3 ช่อง (KPI STAT CARDS) */}
+        {/* ========================================================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Card 1: รายรับรวม */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                รายรับรวม
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4" />
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-emerald-600">
-              ฿{totalRevenue.toLocaleString()}
+            <div className="my-2.5">
+              <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                ฿{totalRevenue.toLocaleString()}
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 text-xs text-slate-500">
+              จากงานสูบที่เสร็จสิ้นในช่วงเวลานี้ ({jobs.length} งาน)
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between sm:block space-y-0 sm:space-y-1">
-            <div>
-              <span className="text-xs text-slate-500 font-medium">รายจ่ายรวมทั้งหมด</span>
-              <p className="text-[11px] text-slate-400 hidden sm:block">รวมค่าน้ำมัน ซ่อมบำรุง ฯลฯ</p>
+          {/* Card 2: รายจ่ายรวมทั้งหมด */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                รายจ่ายรวมทั้งหมด
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0">
+                <Fuel className="w-4 h-4" />
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-rose-600">
-              ฿{totalExpense.toLocaleString()}
+            <div className="my-2.5">
+              <div className="text-2xl sm:text-3xl font-bold text-rose-600 tracking-tight">
+                ฿{totalExpense.toLocaleString()}
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 text-xs text-slate-500">
+              รวมค่าน้ำมัน จุดทิ้ง ซ่อมบำรุง ({expenses.length} รายการ)
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between sm:block space-y-0 sm:space-y-1">
-            <div>
-              <span className="text-xs text-slate-500 font-medium">กำไรสุทธิ</span>
-              <p className="text-[11px] text-slate-400 hidden sm:block">รายรับหักค่าใช้จ่ายทั้งหมด</p>
+          {/* Card 3: กำไรสุทธิ */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                กำไรสุทธิ
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-4 h-4" />
+              </div>
             </div>
-            <div
-              className={`text-xl sm:text-2xl font-bold ${
-                netProfit >= 0 ? "text-blue-600" : "text-rose-600"
-              }`}
-            >
-              ฿{netProfit.toLocaleString()}
+            <div className="my-2.5">
+              <div
+                className={`text-2xl sm:text-3xl font-bold tracking-tight ${
+                  netProfit >= 0 ? "text-blue-600" : "text-rose-600"
+                }`}
+              >
+                ฿{netProfit.toLocaleString()}
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+              <span>รายรับหักค่าใช้จ่าย:</span>
+              <span
+                className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border ${
+                  netProfit >= 0
+                    ? "bg-blue-50 text-blue-700 border-blue-200/60"
+                    : "bg-rose-50 text-rose-700 border-rose-200/60"
+                }`}
+              >
+                {totalRevenue > 0 ? `${((netProfit / totalRevenue) * 100).toFixed(1)}%` : "0%"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* กราฟเปรียบเทียบรายรับ - รายจ่าย */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        {/* ========================================================= */}
+        {/* 🌟 4. กราฟแท่งเปรียบเทียบรายรับ - รายจ่าย (POLISHED BAR CHART) */}
+        {/* ========================================================= */}
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                📈 กราฟเปรียบเทียบรายรับ - รายจ่าย
+                <BarChart3 className="w-4 h-4 text-blue-600" />
+                <span>กราฟเปรียบเทียบรายรับ - รายจ่าย</span>
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 ภาพรวมกระแสเงินสดและสัดส่วนรายจ่ายตามช่วงเวลาที่เลือก
               </p>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-4 text-xs font-semibold pt-1 sm:pt-0">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 text-emerald-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> รายรับ
+            <div className="flex items-center justify-between sm:justify-end gap-5 text-xs font-semibold pt-1 sm:pt-0">
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5 text-slate-700 font-medium">
+                  <span className="w-3 h-3 rounded-xs bg-[#10b981] inline-block shadow-2xs" />
+                  <span>รายรับ</span>
                 </span>
-                <span className="flex items-center gap-1.5 text-rose-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> รายจ่าย
+                <span className="flex items-center gap-1.5 text-slate-700 font-medium">
+                  <span className="w-3 h-3 rounded-xs bg-[#f43f5e] inline-block shadow-2xs" />
+                  <span>รายจ่าย</span>
                 </span>
               </div>
               {breakdownList.length > 10 && (
@@ -359,16 +426,21 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             </div>
           ) : (
             <div className="w-full overflow-x-auto pb-3 pt-6 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-              {/* กำหนดความสูง h-64 sm:h-72 พร้อม pt-14 ไม่ให้ Tooltip ชนหัวตาราง */}
+              {/* Chart container with horizontal guideline grid */}
               <div
-                className="flex items-end h-64 sm:h-72 border-b border-slate-200 px-2 sm:px-3 gap-1.5 sm:gap-2 pt-14 pb-1"
+                className="relative flex items-end h-64 sm:h-76 border-b border-slate-200 px-2 sm:px-4 gap-2 sm:gap-3 pt-16 pb-1"
                 style={{
                   minWidth:
                     breakdownList.length > 10
-                      ? `${breakdownList.length * 40}px`
+                      ? `${breakdownList.length * 48}px`
                       : "100%",
                 }}
               >
+                {/* Horizontal Background Guidelines (dashed) */}
+                <div className="absolute inset-x-0 top-16 border-b border-dashed border-slate-200/80 pointer-events-none" />
+                <div className="absolute inset-x-0 top-1/2 border-b border-dashed border-slate-200/80 pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-1/4 border-b border-dashed border-slate-200/80 pointer-events-none" />
+
                 {breakdownList.map((m, idx) => {
                   const revPercent =
                     maxVal > 0 ? Math.round((m.revenue / maxVal) * 100) : 0;
@@ -378,44 +450,46 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                   return (
                     <div
                       key={idx}
-                      className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer"
+                      className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer z-10"
                     >
                       {/* Tooltip Hover แสดงผลเมื่อมีค่า */}
                       {(m.revenue > 0 || m.expense > 0) && (
-                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[11px] rounded-lg py-1 px-2.5 pointer-events-none opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30 shadow-xl border border-slate-800 flex flex-col items-center">
-                          <div className="font-semibold">{m.label}</div>
-                          <div className="text-emerald-400">
+                        <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[11px] rounded-xl py-1.5 px-3 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 shadow-xl border border-slate-800 flex flex-col items-center">
+                          <div className="font-bold text-slate-200">{m.label}</div>
+                          <div className="text-emerald-400 font-semibold font-mono">
                             รับ: ฿{m.revenue.toLocaleString()}
                           </div>
-                          <div className="text-rose-400">
+                          <div className="text-rose-400 font-semibold font-mono">
                             จ่าย: ฿{m.expense.toLocaleString()}
                           </div>
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mb-2 mt-0.5" />
                         </div>
                       )}
 
-                      {/* เสากราฟ (Bars) */}
-                      <div className="flex items-end gap-1 h-full w-full justify-center">
+                      {/* เสากราฟ (Bars - WIDER & ROUNDED-T-LG) */}
+                      <div className="flex items-end gap-1 sm:gap-1.5 h-full w-full justify-center">
+                        {/* Bar รายรับ: Emerald Green #10B981 */}
                         <div
                           style={{
                             height: `${
                               m.revenue > 0 ? Math.max(revPercent, 5) : 0
                             }%`,
                           }}
-                          className="w-2.5 sm:w-3.5 bg-emerald-500 hover:bg-emerald-600 rounded-t-sm transition-all"
+                          className="w-5 sm:w-7 md:w-8 bg-[#10b981] hover:bg-[#059669] rounded-t-lg transition-all shadow-xs shadow-emerald-500/20"
                         />
+                        {/* Bar รายจ่าย: Soft Rose #F43F5E */}
                         <div
                           style={{
                             height: `${
                               m.expense > 0 ? Math.max(expPercent, 5) : 0
                             }%`,
                           }}
-                          className="w-2.5 sm:w-3.5 bg-rose-500 hover:bg-rose-600 rounded-t-sm transition-all"
+                          className="w-5 sm:w-7 md:w-8 bg-[#f43f5e] hover:bg-[#e11d48] rounded-t-lg transition-all shadow-xs shadow-rose-500/20"
                         />
                       </div>
 
                       {/* ตัวเลขแกนวันที่ */}
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 mt-2 block truncate max-w-[42px] text-center">
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-500 mt-2 block truncate max-w-[50px] text-center">
                         {m.label}
                       </span>
                     </div>
@@ -426,24 +500,28 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
           )}
         </div>
 
-        {/* ตารางแจกแจงตัวเลข */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-bold text-xs sm:text-sm text-slate-800 flex items-center gap-2">
-              📋 ตารางแจกแจงรายละเอียดตัวเลข
+        {/* ========================================================= */}
+        {/* 🌟 5. ตารางแจกแจงตัวเลข (DATA TABLE UX) */}
+        {/* ========================================================= */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-blue-600" />
+              <span>ตารางแจกแจงรายละเอียดตัวเลข</span>
             </h3>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-xs font-semibold text-slate-400">
               {breakdownList.length} รายการ
             </span>
           </div>
+
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 sticky top-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <thead className="bg-slate-50/90 text-slate-500 font-semibold text-xs uppercase tracking-wider border-b border-slate-200/80 sticky top-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
                 <tr>
-                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 whitespace-nowrap">ช่วงเวลา / วัน</th>
-                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-right whitespace-nowrap">รายรับ</th>
-                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-right whitespace-nowrap">รายจ่าย</th>
-                  <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-right whitespace-nowrap">กำไรสุทธิ</th>
+                  <th className="py-3 px-4 whitespace-nowrap">ช่วงเวลา / วัน</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">รายรับ</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">รายจ่าย</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">กำไรสุทธิ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -454,42 +532,46 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                     </td>
                   </tr>
                 ) : (
-                  breakdownList.map((m, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition">
-                      <td className="py-2 sm:py-3 px-3 sm:px-4 text-slate-800 font-semibold whitespace-nowrap text-xs sm:text-sm">
+                  breakdownList.map((m, idx) => {
+                    const isEmpty = m.revenue === 0 && m.expense === 0;
+                    return (
+                    <tr key={idx} className={`transition-colors ${isEmpty ? "text-slate-300" : "hover:bg-slate-50/80"}`}>
+                      <td className={`py-3 px-4 whitespace-nowrap text-xs sm:text-sm ${isEmpty ? "font-normal text-slate-400" : "text-slate-900 font-semibold"}`}>
                         {period === "monthly" ? `วันที่ ${m.label}` : m.label}
                       </td>
-                      <td className="py-2 sm:py-3 px-3 sm:px-4 text-right text-emerald-600 text-xs sm:text-sm whitespace-nowrap">
-                        {m.revenue > 0 ? `฿${m.revenue.toLocaleString()}` : "-"}
+                      <td className="py-3 px-4 text-right font-mono text-xs sm:text-sm whitespace-nowrap">
+                        {m.revenue > 0 ? <span className="text-emerald-600">{`฿${m.revenue.toLocaleString()}`}</span> : <span className="text-slate-300 font-sans">-</span>}
                       </td>
-                      <td className="py-2 sm:py-3 px-3 sm:px-4 text-right text-rose-600 text-xs sm:text-sm whitespace-nowrap">
-                        {m.expense > 0 ? `฿${m.expense.toLocaleString()}` : "-"}
+                      <td className="py-3 px-4 text-right font-mono text-xs sm:text-sm whitespace-nowrap">
+                        {m.expense > 0 ? <span className="text-rose-600">{`฿${m.expense.toLocaleString()}`}</span> : <span className="text-slate-300 font-sans">-</span>}
                       </td>
                       <td
-                        className={`py-2 sm:py-3 px-3 sm:px-4 text-right font-bold text-xs sm:text-sm whitespace-nowrap ${
-                          m.profit >= 0 ? "text-blue-600" : "text-rose-600"
+                        className={`py-3 px-4 text-right font-mono text-xs sm:text-sm whitespace-nowrap ${
+                          isEmpty ? "text-slate-300 font-normal" :
+                          m.profit >= 0 ? "text-blue-600 font-semibold" : "text-rose-600 font-semibold"
                         }`}
                       >
-                        ฿{m.profit.toLocaleString()}
+                        {isEmpty ? "-" : `฿${m.profit.toLocaleString()}`}
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
               {breakdownList.length > 0 && (
                 <tfoot className="bg-slate-50 font-bold border-t border-slate-200 sticky bottom-0 z-10 shadow-[0_-1px_2px_rgba(0,0,0,0.03)]">
                   <tr>
-                    <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-slate-900 text-xs sm:text-sm">
+                    <td className="py-3 px-4 text-slate-900 text-xs sm:text-sm">
                       รวมทั้งสิ้น
                     </td>
-                    <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right text-emerald-700 font-bold text-xs sm:text-sm whitespace-nowrap">
+                    <td className="py-3 px-4 text-right text-emerald-700 font-mono font-bold text-xs sm:text-sm whitespace-nowrap">
                       ฿{totalRevenue.toLocaleString()}
                     </td>
-                    <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right text-rose-700 font-bold text-xs sm:text-sm whitespace-nowrap">
+                    <td className="py-3 px-4 text-right text-rose-700 font-mono font-bold text-xs sm:text-sm whitespace-nowrap">
                       ฿{totalExpense.toLocaleString()}
                     </td>
                     <td
-                      className={`py-2.5 sm:py-3 px-3 sm:px-4 text-right font-extrabold text-xs sm:text-sm whitespace-nowrap ${
+                      className={`py-3 px-4 text-right font-mono font-extrabold text-xs sm:text-sm whitespace-nowrap ${
                         netProfit >= 0 ? "text-blue-700" : "text-rose-700"
                       }`}
                     >

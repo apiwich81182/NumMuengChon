@@ -18,6 +18,9 @@ import {
   Truck,
   User as UserIcon,
   CheckCircle2,
+  ClipboardList,
+  Briefcase,
+  ClipboardCheck,
 } from "lucide-react";
 
 export const revalidate = 0;
@@ -180,7 +183,8 @@ export default async function JobsPage({ searchParams }: PageProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              📋 รายการงานสูบส้วม
+              <ClipboardList className="w-7 h-7 text-sky-400" />
+              <span>รายการงานสูบส้วม</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
               พบประวัติทั้งหมด {totalJobs} รายการ {currentUser.role === "ADMIN" ? "(ภาพรวมบริษัท)" : "(รายการของคุณ)"}
@@ -190,16 +194,18 @@ export default async function JobsPage({ searchParams }: PageProps) {
             {currentUser.role === "ADMIN" && (
               <Link
                 href="/admin/jobs/assign"
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 shadow-sm shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0"
               >
-                <span>📋 จ่ายงาน</span>
+                <Briefcase className="w-4 h-4" />
+                <span>จ่ายงาน</span>
               </Link>
             )}
             <Link
               href="/jobs/new"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm"
+              className="px-3.5 sm:px-4 py-2.5 bg-blue-500 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold border border-slate-300/90 hover:border-slate-400 transition-all shadow-2xs flex items-center justify-center gap-1.5 shrink-0"
             >
-              + ส่งงานทันที
+              <Truck className="w-4 h-4" />
+              ส่งงาน
             </Link>
           </div>
         </div>
@@ -419,7 +425,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
                         href={`/jobs/${aj.id}/complete`}
                         className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm"
                       >
-                        <CheckCircle2 className="w-4 h-4" />
+                        <ClipboardCheck className="w-4 h-4" />
                         <span>จบงาน</span>
                       </Link>
                     </div>

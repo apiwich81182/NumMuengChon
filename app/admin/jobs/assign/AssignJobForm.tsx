@@ -397,7 +397,7 @@ export default function AssignJobForm({
           {/* 2. ส่วนมอบหมายรถและคนขับ (Assignment & Scheduling) */}
           <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 space-y-4">
         <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-          <Truck className="w-5 h-5 text-emerald-600" />
+          <Truck className="w-5 h-5 text-blue-500" />
           <span>การมอบหมายรถและพนักงาน</span>
         </h2>
 

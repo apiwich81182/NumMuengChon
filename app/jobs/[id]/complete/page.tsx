@@ -2,7 +2,7 @@ import { requireUserPage } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import CompleteJobForm from "./CompleteJobForm";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ClipboardCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -65,7 +65,8 @@ export default async function CompleteJobPage({ params }: PageProps) {
               <span>กลับหน้ารายการงาน</span>
             </Link>
             <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <span>📸 บันทึกจบงาน</span>
+              <ClipboardCheck className="w-6 h-6 text-emerald-600" />
+              <span>บันทึกจบงาน</span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
                 {job.status === "COMPLETED" ? "แก้ไขข้อมูล" : "จบงาน"}
               </span>

@@ -9,6 +9,7 @@ import { getStaffAndDrivers } from "@/lib/user-service";
 import { formatDateTh, formatTimeTh } from "@/lib/formatters";
 import LeaveActionButtons from "./LeaveActionButtons";
 import AttendanceFilterBar from "./AttendanceFilterBar";
+import { ClipboardClock } from "lucide-react";
 
 export const revalidate = 0;
 
@@ -244,7 +245,8 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-              ⏰ บันทึกเวลาของพนักงาน
+              <ClipboardClock className="w-7 h-7 text-yellow-400" />
+              <span>บันทึกเวลาของพนักงาน</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
               คำนวณการเข้างานอัตโนมัติจากงานที่วิ่งจริง (พบทั้งหมด {totalItems} รายการ)

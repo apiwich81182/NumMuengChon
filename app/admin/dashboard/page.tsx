@@ -16,6 +16,24 @@ import DashboardViewSwitcher from "@/components/dashboard/DashboardViewSwitcher"
 import DashboardFilterBar from "@/components/dashboard/DashboardFilterBar";
 import ExportExcelButton from "@/components/ExportExcelButton";
 import { getCalendarMonthData } from "@/lib/calendar-stats";
+import {
+  TrendingUp,
+  Fuel,
+  BarChart3,
+  Truck,
+  ClipboardList,
+  CheckCircle2,
+  Calendar,
+  FileSpreadsheet,
+  Plus,
+  ArrowRight,
+  ShieldCheck,
+  DollarSign,
+  Clock,
+  Layers,
+  LayoutDashboard,
+  Briefcase,
+} from "lucide-react";
 
 export const revalidate = 0;
 
@@ -63,7 +81,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   }
 
   // วันและเดือนสำหรับตาราง Matrix Attendance (คำนวณตามเวลาไทย Asia/Bangkok)
-  const { year: currentYear, month: currentMonthNum } = getThaiDateParts(now);
+  const { year: currentYear, month: currentMonthNum, day: currentDayNum } = getThaiDateParts(now);
   const currentMonthIdx = currentMonthNum - 1;
   const daysInMonth = new Date(currentYear, currentMonthNum, 0).getDate();
   const attendanceDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -117,7 +135,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       },
     }),
     getActiveDrivers(),
-    // 🌟 ดึงเฉพาะงานของเดือนปัจจุบันทั้งเดือนตามเวลาไทย (Asia/Bangkok)
+    // ดึงเฉพาะงานของเดือนปัจจุบันทั้งเดือนตามเวลาไทย (Asia/Bangkok)
     prisma.job.findMany({
       where: {
         completedAt: {
@@ -132,9 +150,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         createdAt: true,
       },
     }),
-    // 🌟 ดึงข้อมูลปฏิทินรายได้สุทธิและจำนวนงานรายวัน
+    // ดึงข้อมูลปฏิทินรายได้สุทธิและจำนวนงานรายวัน
     getCalendarMonthData(targetCalYear, targetCalMonth),
-    // 🌟 นับจำนวนงานที่มอบหมายรอเริ่มงาน (ASSIGNED)
+    // นับจำนวนงานที่มอบหมายรอเริ่มงาน (ASSIGNED)
     prisma.job.count({
       where: { status: "ASSIGNED" },
     }),
@@ -162,55 +180,71 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   if (endDate) exportParams.set("endDate", endDate);
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 xl:p-10 text-slate-800">
-      <div className="w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6">
-        {/* หัวกระดาษ และปุ่มแอ็กชัน */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 sm:gap-4">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 text-slate-800 antialiased">
+      <div className="w-full max-w-[1600px] mx-auto space-y-6">
+        {/* ========================================================= */}
+        {/* 🌟 1. หัวกระดาษ และปุ่มแอ็กชัน (BUTTON HIERARCHY) */}
+        {/* ========================================================= */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-              📊 แดชบอร์ดสรุปผลประกอบการ
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <LayoutDashboard className="w-7 h-7 text-indigo-400" />
+              <span>แดชบอร์ดสรุปผลประกอบการ</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              ข้อมูลรายรับ-รายจ่าย ประสิทธิภาพงาน และการลงเวลาพนักงาน
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
+              ภาพรวมกระแสเงินสด ประสิทธิภาพรถสูบ และการลงเวลาปฏิบัติงานของพนักงาน
             </p>
           </div>
-          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+
+          {/* Action Buttons: 1 เด่น Primary + ปุ่มรอง Outline/Ghost */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
+            {/* 1. ปุ่มหลักเด่นชัดที่สุด (Primary Button) */}
             <Link
               href="/admin/jobs/assign"
-              className="px-2.5 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs text-center truncate flex items-center justify-center gap-1"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 shadow-sm shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0"
             >
-              <span>📋</span>
-              <span>+ จ่ายงาน</span>
+              <Briefcase className="w-4 h-4" />
+              <span>จ่ายงาน</span>
             </Link>
+
+            {/* 2. ปุ่มรอง Outline: ส่งออก Excel */}
             <ExportExcelButton
               exportUrl={`/api/export/jobs?${exportParams.toString()}`}
               defaultFilename="jobs-export.csv"
-              className="px-2.5 sm:px-4 py-2 bg-[#027a48] hover:bg-[#02643c] text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1 transition shadow-xs cursor-pointer text-center"
+              className="px-3.5 sm:px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold border border-slate-300/90 hover:border-slate-400 transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
             >
-              <span>📊</span>
-              <span className="truncate">ส่งออก Excel</span>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>ส่งออก Excel</span>
             </ExportExcelButton>
+
+            {/* 3. ปุ่มรอง Outline: + รายจ่าย */}
             <Link
               href="/expenses/new"
-              className="px-2.5 sm:px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs text-center truncate"
+              className="px-3.5 sm:px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold border border-slate-300/90 hover:border-slate-400 transition-all shadow-2xs flex items-center justify-center gap-1.5 shrink-0"
             >
-              + รายจ่าย
+              <Fuel className="w-4 h-4 text-white" />
+              <span>รายจ่าย</span>
             </Link>
+
+            {/* 4. ปุ่มรอง Outline: + ส่งงาน */}
             <Link
               href="/jobs/new"
-              className="px-2.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs text-center truncate"
+              className="px-3.5 sm:px-4 py-2.5 bg-blue-500 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold border border-slate-300/90 hover:border-slate-400 transition-all shadow-2xs flex items-center justify-center gap-1.5 shrink-0"
             >
-              + ส่งงาน
+              <Truck className="w-4 h-4 text-white" />
+              <span>ส่งงาน</span>
             </Link>
           </div>
         </div>
 
-        {/* 🌟 สลับมุมมอง: ภาพรวมและหน้างาน VS ปฏิทินรายได้สุทธิ */}
+        {/* ========================================================= */}
+        {/* 🌟 2. สลับมุมมอง: ภาพรวมและหน้างาน VS ปฏิทินรายได้สุทธิ */}
+        {/* ========================================================= */}
         <DashboardViewSwitcher
           defaultTab={defaultTab}
           calendarContent={<FinancialCalendar key="calendar-view" initialData={calendarData} />}
           overviewContent={
-            <div key="overview-view" className="space-y-5 sm:space-y-6">
+            <div key="overview-view" className="space-y-6">
               {/* แถบตัวกรองอัตโนมัติ (Instant Filter Bar) */}
               <DashboardFilterBar
                 period={period}
@@ -218,568 +252,711 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                 endDate={endDate}
               />
 
-        {/* แถบแจ้งเตือนงานที่จ่ายแล้ว รอดำเนินการ */}
-        {pendingAssignedCount > 0 && (
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 rounded-2xl p-4 sm:p-5 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-xl shrink-0">
-                📋
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-base sm:text-lg">
-                    มีงานที่จ่ายแล้วรอดำเนินการ {pendingAssignedCount} งาน
-                  </span>
-                  <span className="flex h-2.5 w-2.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
-                  </span>
-                </div>
-                <p className="text-xs text-blue-100 mt-0.5">
-                  งานที่จ่ายให้คนขับแล้วและกำลังรอดำเนินการจบงานในระบบ
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/jobs?tab=assigned"
-              className="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs sm:text-sm rounded-xl transition shadow-xs whitespace-nowrap self-stretch sm:self-auto text-center"
-            >
-              ดูคิวงานรอดำเนินการ ➔
-            </Link>
-          </div>
-        )}
-
-        {/* 1. บัตรสรุปผล 4 ใบ (บนมือถือแสดง 2 คอลัมน์กะทัดรัด) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1 sm:space-y-2">
-            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">รายรับรวม</span>
-            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">
-              ฿{totalRevenue.toLocaleString()}
-            </div>
-            <div className="flex flex-wrap items-center gap-1 pt-0.5 text-[10px] sm:text-[11px] font-semibold">
-              <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
-                💵 เงินสด: ฿{cashRevenue.toLocaleString()}
-              </span>
-              <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 whitespace-nowrap">
-                📱 โอน: ฿{transferRevenue.toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1 sm:space-y-2">
-            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">รายจ่ายรวม</span>
-            <div className="text-lg sm:text-2xl font-bold text-rose-600 truncate">
-              ฿{totalExpense.toLocaleString()}
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-400 pt-0.5 truncate">
-              น้ำมัน, จุดทิ้ง, ซ่อมบำรุง
-            </div>
-          </div>
-
-          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1 sm:space-y-2">
-            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">กำไรสุทธิ</span>
-            <div
-              className={`text-lg sm:text-2xl font-bold truncate ${
-                netProfit >= 0 ? "text-blue-600" : "text-rose-600"
-              }`}
-            >
-              ฿{netProfit.toLocaleString()}
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-400 pt-0.5 truncate">
-              กำไรขั้นต้น {profitMargin}
-            </div>
-          </div>
-
-          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1 sm:space-y-2">
-            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">ปริมาณสูบรวม</span>
-            <div className="text-lg sm:text-2xl font-bold text-slate-800 truncate">
-              {totalVolume.toLocaleString()}{" "}
-              <span className="text-xs font-normal text-slate-500">ลิตร</span>
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-400 pt-0.5 truncate">
-              เฉลี่ย {avgVolumePerJob.toLocaleString()} ล./งาน ({totalJobsCount} งาน)
-            </div>
-          </div>
-        </div>
-
-        {/* 2. ตารางผลประกอบการและแจกแจงรายจ่ายแยกตามคันรถ */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden space-y-2">
-          <div className="p-4 sm:p-5 border-b border-slate-100">
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              🚚 ผลประกอบการและแจกแจงรายจ่ายแยกตามคันรถ
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              แจกแจงค่าน้ำมัน ค่าทิ้งสิ่งปฏิกูล ค่าซ่อมบำรุง และกำไรส่วนต่างเฉพาะคัน
-            </p>
-          </div>
-
-          {/* 2.1 มุมมองการ์ดบนมือถือ (Mobile Cards) */}
-          <div className="md:hidden p-3.5 space-y-3">
-            {vehicles.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">
-                ไม่พบข้อมูลรถในระบบ
-              </div>
-            ) : (
-              vehicles.map((v) => {
-                const rev = v.jobs.reduce((sum, j) => sum + Number(j.price || 0), 0);
-                const vol = v.jobs.reduce((sum, j) => sum + (j.volumePumped || 0), 0);
-
-                let fuel = 0;
-                let disposal = 0;
-                let maintenance = 0;
-                let other = 0;
-
-                v.expenses.forEach((e) => {
-                  const amt = Number(e.amount || 0);
-                  if (e.category === "FUEL") fuel += amt;
-                  else if (e.category === "DISPOSAL_FEE") disposal += amt;
-                  else if (e.category === "MAINTENANCE") maintenance += amt;
-                  else other += amt;
-                });
-
-                const totalCarExpense = fuel + disposal + maintenance + other;
-                const profit = rev - totalCarExpense;
-
-                return (
-                  <div
-                    key={v.id}
-                    className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-2.5"
+              {/* ========================================================= */}
+              {/* 🌟 3. แถบแจ้งเตือนงานรอดำเนินการ (SOFT-TONE ALERT BANNER) */}
+              {/* ========================================================= */}
+              {pendingAssignedCount > 0 && (
+                <div className="bg-blue-50/80 border border-blue-200/90 rounded-2xl p-4 sm:p-4.5 text-blue-950 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100/80 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+                      <ClipboardList className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm sm:text-base text-slate-900">
+                          มีงานที่จ่ายแล้วรอดำเนินการ {pendingAssignedCount} งาน
+                        </span>
+                        <span className="flex h-2.5 w-2.5 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        งานที่จ่ายให้คนขับแล้วและกำลังรอดำเนินการจบงานในระบบ
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/jobs?tab=assigned"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition shadow-xs whitespace-nowrap self-stretch sm:self-auto text-center flex items-center justify-center gap-1.5"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <span className="font-bold text-sm text-slate-900">
-                          🚚 {v.plateNumber}
-                        </span>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          {v.jobs.length} เที่ยว • {vol.toLocaleString()} ลิตร
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block">กำไรส่วนต่าง</span>
-                        <span
-                          className={`font-bold font-mono text-sm ${
-                            profit >= 0 ? "text-blue-600" : "text-rose-600"
-                          }`}
-                        >
-                          ฿{profit.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
+                    <span>ดูคิวงานรอดำเนินการ</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
 
-                    {/* รายรับ & รวมจ่าย */}
-                    <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-200/60 font-medium">
-                      <div className="flex items-center justify-between bg-emerald-50/70 text-emerald-800 p-2 rounded-lg border border-emerald-100">
-                        <span>รายรับ:</span>
-                        <span className="font-bold font-mono">฿{rev.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between bg-rose-50/70 text-rose-800 p-2 rounded-lg border border-rose-100">
-                        <span>รวมจ่าย:</span>
-                        <span className="font-bold font-mono">฿{totalCarExpense.toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    {/* แจกแจงรายจ่ายแต่ละประเภท */}
-                    <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-600 pt-0.5">
-                      <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
-                        <span>⛽ น้ำมัน:</span>
-                        <span className="font-semibold">{fuel > 0 ? `฿${fuel.toLocaleString()}` : "-"}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
-                        <span>🚽 จุดทิ้ง:</span>
-                        <span className="font-semibold">{disposal > 0 ? `฿${disposal.toLocaleString()}` : "-"}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
-                        <span>🔧 ซ่อม:</span>
-                        <span className="font-semibold">{maintenance > 0 ? `฿${maintenance.toLocaleString()}` : "-"}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
-                        <span>📦 อื่นๆ:</span>
-                        <span className="font-semibold">{other > 0 ? `฿${other.toLocaleString()}` : "-"}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* 2.2 ตารางมุมมอง Desktop (Desktop Table) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4 whitespace-nowrap">ทะเบียนรถ</th>
-                  <th className="py-3 px-4 text-center whitespace-nowrap">เที่ยวงาน</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap">ปริมาณสูบ</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap">รายรับ</th>
-                  <th className="py-3 px-4 text-right text-rose-600 font-medium whitespace-nowrap">⛽ ค่าน้ำมัน</th>
-                  <th className="py-3 px-4 text-right text-purple-600 font-medium whitespace-nowrap">🚽 ค่าจุดทิ้ง</th>
-                  <th className="py-3 px-4 text-right text-amber-600 font-medium whitespace-nowrap">🔧 ค่าซ่อม</th>
-                  <th className="py-3 px-4 text-right text-yellow-700 font-medium whitespace-nowrap">📦 อื่นๆ</th>
-                  <th className="py-3 px-4 text-right text-rose-600 font-bold whitespace-nowrap">รวมจ่าย</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap font-bold">กำไรส่วนต่าง</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {vehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="py-8 text-center text-slate-400 text-xs">
-                      ไม่พบข้อมูลรถในระบบ
-                    </td>
-                  </tr>
-                ) : (
-                  vehicles.map((v) => {
-                    const rev = v.jobs.reduce((sum, j) => sum + Number(j.price || 0), 0);
-                    const vol = v.jobs.reduce((sum, j) => sum + (j.volumePumped || 0), 0);
-
-                    let fuel = 0;
-                    let disposal = 0;
-                    let maintenance = 0;
-                    let other = 0;
-
-                    v.expenses.forEach((e) => {
-                      const amt = Number(e.amount || 0);
-                      if (e.category === "FUEL") fuel += amt;
-                      else if (e.category === "DISPOSAL_FEE") disposal += amt;
-                      else if (e.category === "MAINTENANCE") maintenance += amt;
-                      else other += amt;
-                    });
-
-                    const totalCarExpense = fuel + disposal + maintenance + other;
-                    const profit = rev - totalCarExpense;
-
-                    return (
-                      <tr key={v.id} className="hover:bg-slate-50 transition">
-                        <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">
-                          {v.plateNumber}
-                        </td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap text-slate-600">
-                          {v.jobs.length} เที่ยว
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-600">
-                          {vol.toLocaleString()} ลิตร
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-emerald-600 whitespace-nowrap">
-                          ฿{rev.toLocaleString()}
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-700">
-                          {fuel > 0 ? `฿${fuel.toLocaleString()}` : "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-700">
-                          {disposal > 0 ? `฿${disposal.toLocaleString()}` : "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-700">
-                          {maintenance > 0 ? `฿${maintenance.toLocaleString()}` : "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-500">
-                          {other > 0 ? `฿${other.toLocaleString()}` : "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-rose-500 whitespace-nowrap">
-                          ฿{totalCarExpense.toLocaleString()}
-                        </td>
-                        <td
-                          className={`py-3.5 px-4 text-right font-bold whitespace-nowrap ${
-                            profit >= 0 ? "text-blue-600" : "text-rose-600"
-                          }`}
-                        >
-                          ฿{profit.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 3. ประสิทธิภาพพนักงาน & ยอดเงินสดที่ถือ */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden space-y-2">
-          <div className="p-4 sm:p-5 border-b border-slate-100">
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              👷 ประสิทธิภาพพนักงาน & ยอดเงินสดที่ถือ
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              ตรวจสอบจำนวนเที่ยวงาน และยอดเงินสดที่พนักงานต้องส่งแอดมิน
-            </p>
-          </div>
-
-          {/* 3.1 มุมมองการ์ดบนมือถือ (Mobile Cards) */}
-          <div className="md:hidden p-3.5 space-y-3">
-            {drivers.map((driver) => {
-              let primaryJobs = 0;
-              let assistantJobs = 0;
-              let volumeSum = 0;
-              let unreconciledCash = 0;
-
-              jobs.forEach((j) => {
-                if (j.userId === driver.id) {
-                  primaryJobs++;
-                  volumeSum += j.volumePumped || 0;
-                  if (j.paymentMethod === "CASH" && !j.isReconciled) {
-                    unreconciledCash += Number(j.price || 0);
-                  }
-                } else if (j.driver2Id === driver.id) {
-                  assistantJobs++;
-                  volumeSum += j.volumePumped || 0;
-                }
-              });
-
-              const totalStaffJobs = primaryJobs + assistantJobs;
-
-              return (
-                <div
-                  key={driver.id}
-                  className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-2.5"
-                >
+              {/* ========================================================= */}
+              {/* 🌟 4. บล็อกสถิติหลัก 4 ช่อง (METRIC / KPI STAT CARDS) */}
+              {/* ========================================================= */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Stat 1: รายรับรวม */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-bold text-sm text-slate-900">
-                      👷 {driver.name}
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      รายรับรวม
                     </span>
-                    {unreconciledCash > 0 ? (
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 whitespace-nowrap">
-                        💵 ค้างส่ง: ฿{unreconciledCash.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 whitespace-nowrap">
-                        ✓ ครบแล้ว (฿0)
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1 border-t border-slate-200/60">
-                    <div className="p-1.5 bg-white rounded-lg border border-slate-200/60">
-                      <span className="text-[10px] text-slate-400 block">ขับหลัก</span>
-                      <span className="font-bold text-slate-700">{primaryJobs} เที่ยว</span>
-                    </div>
-                    <div className="p-1.5 bg-white rounded-lg border border-slate-200/60">
-                      <span className="text-[10px] text-slate-400 block">ผู้ช่วย</span>
-                      <span className="font-bold text-slate-700">{assistantJobs} เที่ยว</span>
-                    </div>
-                    <div className="p-1.5 bg-blue-50/60 rounded-lg border border-blue-100">
-                      <span className="text-[10px] text-blue-600 block">รวมงาน</span>
-                      <span className="font-bold text-blue-700">{totalStaffJobs} งาน</span>
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                      <TrendingUp className="w-4 h-4" />
                     </div>
                   </div>
-
-                  <div className="text-[11px] text-slate-500 text-right">
-                    ปริมาณสูบสะสม: <strong className="text-slate-700">{volumeSum.toLocaleString()} ลิตร</strong>
+                  <div className="my-2.5">
+                    <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                      ฿{totalRevenue.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-[11px] font-semibold">
+                    <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-200/60 whitespace-nowrap">
+                      💵 เงินสด ฿{cashRevenue.toLocaleString()}
+                    </span>
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg border border-blue-200/60 whitespace-nowrap">
+                      📱 โอน ฿{transferRevenue.toLocaleString()}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* 3.2 ตารางมุมมอง Desktop (Desktop Table) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4 whitespace-nowrap">ชื่อพนักงาน</th>
-                  <th className="py-3 px-4 text-center whitespace-nowrap">คนขับหลัก</th>
-                  <th className="py-3 px-4 text-center whitespace-nowrap">ผู้ช่วย</th>
-                  <th className="py-3 px-4 text-center whitespace-nowrap">รวมงาน</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap">ปริมาณสูบรวม</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap">💵 เงินสดที่ต้องส่งคืน</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {drivers.map((driver) => {
-                  let primaryJobs = 0;
-                  let assistantJobs = 0;
-                  let volumeSum = 0;
-                  let unreconciledCash = 0;
+                {/* Stat 2: รายจ่ายรวม */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      รายจ่ายรวม
+                    </span>
+                    <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0">
+                      <Fuel className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="my-2.5">
+                    <div className="text-2xl sm:text-3xl font-bold text-rose-600 tracking-tight">
+                      ฿{totalExpense.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+                    <span>น้ำมัน, จุดทิ้ง, ซ่อมบำรุง</span>
+                    <span className="font-semibold text-slate-700">{allExpenses.length} บิล</span>
+                  </div>
+                </div>
 
-                  jobs.forEach((j) => {
-                    if (j.userId === driver.id) {
-                      primaryJobs++;
-                      volumeSum += j.volumePumped || 0;
-                      if (j.paymentMethod === "CASH" && !j.isReconciled) {
-                        unreconciledCash += Number(j.price || 0);
-                      }
-                    } else if (j.driver2Id === driver.id) {
-                      assistantJobs++;
-                      volumeSum += j.volumePumped || 0;
-                    }
-                  });
+                {/* Stat 3: กำไรสุทธิ */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      กำไรสุทธิ
+                    </span>
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+                      <BarChart3 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="my-2.5">
+                    <div
+                      className={`text-2xl sm:text-3xl font-bold tracking-tight ${
+                        netProfit >= 0 ? "text-blue-600" : "text-rose-600"
+                      }`}
+                    >
+                      ฿{netProfit.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 text-[11px] flex items-center justify-between">
+                    <span className="text-slate-500">อัตรากำไรขั้นต้น:</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border ${
+                        netProfit >= 0
+                          ? "bg-blue-50 text-blue-700 border-blue-200/60"
+                          : "bg-rose-50 text-rose-700 border-rose-200/60"
+                      }`}
+                    >
+                      {profitMargin}
+                    </span>
+                  </div>
+                </div>
 
-                  const totalStaffJobs = primaryJobs + assistantJobs;
-
-                  return (
-                    <tr key={driver.id} className="hover:bg-slate-50 transition">
-                      <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">
-                        {driver.name}
-                      </td>
-                      <td className="py-3.5 px-4 text-center text-slate-600 whitespace-nowrap">
-                        {primaryJobs} เที่ยว
-                      </td>
-                      <td className="py-3.5 px-4 text-center text-slate-600 whitespace-nowrap">
-                        {assistantJobs} เที่ยว
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-bold text-blue-600 whitespace-nowrap">
-                        {totalStaffJobs} งาน
-                      </td>
-                      <td className="py-3.5 px-4 text-right text-slate-600 whitespace-nowrap">
-                        {volumeSum.toLocaleString()} ลิตร
-                      </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        {unreconciledCash > 0 ? (
-                          <span className="font-bold text-rose-600">
-                            ฿{unreconciledCash.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
-                            ✓ ครบแล้ว (฿0)
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 4. ตารางสรุปการเข้างานประจำเดือน Matrix (พร้อม Sticky Column สำหรับ Mobile) */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden space-y-2">
-          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                🗓️ สรุปการเข้างานประจำเดือน ({MONTH_NAMES_TH[currentMonthIdx]} {currentYear + 543})
-              </h2>
-              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                <span>สัญลักษณ์:</span>
-                <span className="flex items-center gap-1 font-semibold text-emerald-600">✅ มาทำงาน</span>
-                <span className="text-[10px] text-slate-400 sm:hidden">
-                  (← เลื่อนซ้ายขวาเพื่อดูวันที่ →)
-                </span>
+                {/* Stat 4: ปริมาณสูบรวม */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      ปริมาณสูบรวม
+                    </span>
+                    <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="my-2.5">
+                    <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                      {totalVolume.toLocaleString()}{" "}
+                      <span className="text-sm font-normal text-slate-500">ลิตร</span>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+                    <span>เฉลี่ย {avgVolumePerJob.toLocaleString()} ล./งาน</span>
+                    <span className="font-semibold text-slate-700">{totalJobsCount} เที่ยว</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <Link
-              href="/admin/attendance"
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition self-end sm:self-auto"
-            >
-              ⏱️ ดูประวัติลงเวลาละเอียด
-            </Link>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-center text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="sticky left-0 bg-slate-50 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.04)] py-2.5 px-3 text-left whitespace-nowrap min-w-[110px]">
-                    พนักงาน
-                  </th>
-                  {attendanceDays.map((d) => (
-                    <th key={d} className="py-2.5 px-1 min-w-[28px] font-semibold text-slate-600">
-                      {d}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {drivers.map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50 transition">
-                    <td className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.04)] py-2.5 px-3 text-left font-bold text-slate-800 whitespace-nowrap">
-                      {d.name}
-                    </td>
-                    {attendanceDays.map((dayNum) => {
-                      const hasJobWorked = monthJobs.some((j) => {
-                        const jobDate = j.completedAt || j.createdAt;
-                        const { year: jYear, month: jMonth, day: jDay } = getThaiDateParts(jobDate);
-                        const isSameDay =
-                          jDay === dayNum &&
-                          jMonth === currentMonthNum &&
-                          jYear === currentYear;
+              {/* ========================================================= */}
+              {/* 🌟 5. ตารางผลประกอบการแยกตามคันรถ (DATA TABLE UX) */}
+              {/* ========================================================= */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-blue-600" />
+                      <span>ผลประกอบการและแจกแจงรายจ่ายแยกตามคันรถ</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5 font-normal">
+                      แจกแจงค่าน้ำมัน ค่าทิ้งสิ่งปฏิกูล ค่าซ่อมบำรุง และกำไรส่วนต่างเฉพาะคัน
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400 self-start sm:self-auto">
+                    {vehicles.length} คันในระบบ
+                  </span>
+                </div>
 
-                        const isWorker = j.userId === d.id || j.driver2Id === d.id;
-                        return isSameDay && isWorker;
+                {/* Mobile Cards */}
+                <div className="md:hidden p-3.5 space-y-3">
+                  {vehicles.length === 0 ? (
+                    <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">
+                      ไม่พบข้อมูลรถในระบบ
+                    </div>
+                  ) : (
+                    vehicles.map((v) => {
+                      const rev = v.jobs.reduce((sum, j) => sum + Number(j.price || 0), 0);
+                      const vol = v.jobs.reduce((sum, j) => sum + (j.volumePumped || 0), 0);
+
+                      let fuel = 0;
+                      let disposal = 0;
+                      let maintenance = 0;
+                      let other = 0;
+
+                      v.expenses.forEach((e) => {
+                        const amt = Number(e.amount || 0);
+                        if (e.category === "FUEL") fuel += amt;
+                        else if (e.category === "DISPOSAL_FEE") disposal += amt;
+                        else if (e.category === "MAINTENANCE") maintenance += amt;
+                        else other += amt;
                       });
 
-                      let symbol = "-";
-                      if (hasJobWorked) {
-                        symbol = "✅";
-                      }
+                      const totalCarExpense = fuel + disposal + maintenance + other;
+                      const profit = rev - totalCarExpense;
 
                       return (
-                        <td key={dayNum} className="py-2.5 px-1 text-slate-400 font-medium">
-                          <span
-                            className={
-                              symbol === "✅"
-                                ? "text-emerald-600 font-bold text-sm"
-                                : "text-slate-300"
-                            }
-                          >
-                            {symbol}
-                          </span>
-                        </td>
+                        <div
+                          key={v.id}
+                          className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-2.5"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="font-bold text-sm text-slate-900">
+                                🚚 {v.plateNumber}
+                              </span>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                {v.jobs.length} เที่ยว • {vol.toLocaleString()} ลิตร
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] text-slate-400 block">กำไรส่วนต่าง</span>
+                              <span
+                                className={`font-bold font-mono text-sm ${
+                                  profit >= 0 ? "text-blue-600" : "text-rose-600"
+                                }`}
+                              >
+                                ฿{profit.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-200/60 font-medium">
+                            <div className="flex items-center justify-between bg-emerald-50/70 text-emerald-800 p-2 rounded-lg border border-emerald-100">
+                              <span>รายรับ:</span>
+                              <span className="font-bold font-mono">฿{rev.toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center justify-between bg-rose-50/70 text-rose-800 p-2 rounded-lg border border-rose-100">
+                              <span>รวมจ่าย:</span>
+                              <span className="font-bold font-mono">฿{totalCarExpense.toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-600 pt-0.5">
+                            <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
+                              <span>⛽ น้ำมัน:</span>
+                              <span className="font-semibold">{fuel > 0 ? `฿${fuel.toLocaleString()}` : <span className="text-slate-300">-</span>}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
+                              <span>🚽 จุดทิ้ง:</span>
+                              <span className="font-semibold">{disposal > 0 ? `฿${disposal.toLocaleString()}` : <span className="text-slate-300">-</span>}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
+                              <span>🔧 ซ่อม:</span>
+                              <span className="font-semibold">{maintenance > 0 ? `฿${maintenance.toLocaleString()}` : <span className="text-slate-300">-</span>}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 bg-white rounded border border-slate-200/60">
+                              <span>📦 อื่นๆ:</span>
+                              <span className="font-semibold">{other > 0 ? `฿${other.toLocaleString()}` : <span className="text-slate-300">-</span>}</span>
+                            </div>
+                          </div>
+                        </div>
                       );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    })
+                  )}
+                </div>
 
-        {/* 5. การ์ดสรุปหมวดหมู่ค่าใช้จ่าย 5 หมวดด้านล่างสุด */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 space-y-3 sm:space-y-4">
-          <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-            💸 สรุปหมวดหมู่ค่าใช้จ่าย
-          </h2>
+                {/* Desktop Table with Strict Right Alignment for Numbers */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead className="bg-slate-50/90 text-slate-500 font-semibold text-xs uppercase tracking-wider border-b border-slate-200/80">
+                      <tr>
+                        <th className="py-3 px-4 whitespace-nowrap">ทะเบียนรถ</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">เที่ยวงาน</th>
+                        <th className="py-3 px-4 text-right whitespace-nowrap">ปริมาณสูบ</th>
+                        <th className="py-3 px-4 text-right whitespace-nowrap">รายรับ</th>
+                        <th className="py-3 px-4 text-right text-rose-600 font-semibold whitespace-nowrap">⛽ ค่าน้ำมัน</th>
+                        <th className="py-3 px-4 text-right text-purple-600 font-semibold whitespace-nowrap">🚽 ค่าจุดทิ้ง</th>
+                        <th className="py-3 px-4 text-right text-amber-600 font-semibold whitespace-nowrap">🔧 ค่าซ่อม</th>
+                        <th className="py-3 px-4 text-right text-slate-600 font-semibold whitespace-nowrap">📦 อื่นๆ</th>
+                        <th className="py-3 px-4 text-right text-rose-600 font-bold whitespace-nowrap">รวมจ่าย</th>
+                        <th className="py-3 px-4 text-right whitespace-nowrap font-bold">กำไรส่วนต่าง</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {vehicles.length === 0 ? (
+                        <tr>
+                          <td colSpan={10} className="py-8 text-center text-slate-400 text-xs">
+                            ไม่พบข้อมูลรถในระบบ
+                          </td>
+                        </tr>
+                      ) : (
+                        vehicles.map((v) => {
+                          const rev = v.jobs.reduce((sum, j) => sum + Number(j.price || 0), 0);
+                          const vol = v.jobs.reduce((sum, j) => sum + (j.volumePumped || 0), 0);
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            <div className="bg-slate-50/70 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-1">
-              <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
-                ⛽ ค่าน้ำมัน
-              </span>
-              <div className="text-base sm:text-xl font-bold text-slate-900 truncate">
-                ฿{catFuel.toLocaleString()}
+                          let fuel = 0;
+                          let disposal = 0;
+                          let maintenance = 0;
+                          let other = 0;
+
+                          v.expenses.forEach((e) => {
+                            const amt = Number(e.amount || 0);
+                            if (e.category === "FUEL") fuel += amt;
+                            else if (e.category === "DISPOSAL_FEE") disposal += amt;
+                            else if (e.category === "MAINTENANCE") maintenance += amt;
+                            else other += amt;
+                          });
+
+                          const totalCarExpense = fuel + disposal + maintenance + other;
+                          const profit = rev - totalCarExpense;
+
+                          return (
+                            <tr key={v.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                                🚚 {v.plateNumber}
+                              </td>
+                              <td className="py-3.5 px-4 text-center whitespace-nowrap text-slate-600">
+                                {v.jobs.length} เที่ยว
+                              </td>
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-600 font-mono">
+                                {vol.toLocaleString()} ลิตร
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-bold text-emerald-600 whitespace-nowrap font-mono">
+                                ฿{rev.toLocaleString()}
+                              </td>
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-700 font-mono">
+                                {fuel > 0 ? `฿${fuel.toLocaleString()}` : <span className="text-slate-300 font-sans">-</span>}
+                              </td>
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-700 font-mono">
+                                {disposal > 0 ? `฿${disposal.toLocaleString()}` : <span className="text-slate-300 font-sans">-</span>}
+                              </td>
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-700 font-mono">
+                                {maintenance > 0 ? `฿${maintenance.toLocaleString()}` : <span className="text-slate-300 font-sans">-</span>}
+                              </td>
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-500 font-mono">
+                                {other > 0 ? `฿${other.toLocaleString()}` : <span className="text-slate-300 font-sans">-</span>}
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-bold text-rose-600 whitespace-nowrap font-mono">
+                                ฿{totalCarExpense.toLocaleString()}
+                              </td>
+                              <td
+                                className={`py-3.5 px-4 text-right font-bold whitespace-nowrap font-mono ${
+                                  profit >= 0 ? "text-blue-600" : "text-rose-600"
+                                }`}
+                              >
+                                ฿{profit.toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                    {vehicles.length > 0 && (
+                      <tfoot className="bg-slate-50 font-semibold border-t-2 border-slate-200">
+                        <tr>
+                          <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                            รวมทั้งสิ้น
+                          </td>
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap text-slate-900 font-mono">
+                            {totalJobsCount} เที่ยว
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-900 font-mono">
+                            {totalVolume.toLocaleString()} ลิตร
+                          </td>
+                          <td className="py-3.5 px-4 text-right font-bold text-emerald-700 whitespace-nowrap font-mono">
+                            ฿{totalRevenue.toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-900 font-mono">
+                            ฿{catFuel.toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-900 font-mono">
+                            ฿{catDisposal.toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-900 font-mono">
+                            ฿{catMaintenance.toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap text-slate-900 font-mono">
+                            ฿{catOther.toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4 text-right font-bold text-rose-700 whitespace-nowrap font-mono">
+                            ฿{totalExpense.toLocaleString()}
+                          </td>
+                          <td className={`py-3.5 px-4 text-right font-bold whitespace-nowrap font-mono ${
+                            netProfit >= 0 ? "text-blue-700" : "text-rose-700"
+                          }`}>
+                            ฿{netProfit.toLocaleString()}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+
+              {/* ========================================================= */}
+              {/* 🌟 6. ประสิทธิภาพพนักงาน & ยอดเงินสดที่ถือ (DATA TABLE UX) */}
+              {/* ========================================================= */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>ประสิทธิภาพพนักงาน & ยอดเงินสดที่ถือ</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5 font-normal">
+                      ตรวจสอบจำนวนเที่ยวงาน และยอดเงินสดที่พนักงานต้องส่งคืนแอดมิน ป้องกันเงินตกหล่น
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400 self-start sm:self-auto">
+                    {drivers.length} พนักงานขับรถ
+                  </span>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden p-3.5 space-y-3">
+                  {drivers.map((driver) => {
+                    let primaryJobs = 0;
+                    let assistantJobs = 0;
+                    let volumeSum = 0;
+                    let unreconciledCash = 0;
+
+                    jobs.forEach((j) => {
+                      if (j.userId === driver.id) {
+                        primaryJobs++;
+                        volumeSum += j.volumePumped || 0;
+                        if (j.paymentMethod === "CASH" && !j.isReconciled) {
+                          unreconciledCash += Number(j.price || 0);
+                        }
+                      } else if (j.driver2Id === driver.id) {
+                        assistantJobs++;
+                        volumeSum += j.volumePumped || 0;
+                      }
+                    });
+
+                    const totalStaffJobs = primaryJobs + assistantJobs;
+
+                    return (
+                      <div
+                        key={driver.id}
+                        className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-sm text-slate-900">
+                            👷 {driver.name}
+                          </span>
+                          {unreconciledCash > 0 ? (
+                            <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 whitespace-nowrap">
+                              💵 ค้างส่ง: ฿{unreconciledCash.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-lg text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 whitespace-nowrap">
+                              ✓ ครบแล้ว (฿0)
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1 border-t border-slate-200/60">
+                          <div className="p-1.5 bg-white rounded-lg border border-slate-200/60">
+                            <span className="text-[10px] text-slate-400 block">ขับหลัก</span>
+                            <span className="font-bold text-slate-700">{primaryJobs} เที่ยว</span>
+                          </div>
+                          <div className="p-1.5 bg-white rounded-lg border border-slate-200/60">
+                            <span className="text-[10px] text-slate-400 block">ผู้ช่วย</span>
+                            <span className="font-bold text-slate-700">{assistantJobs} เที่ยว</span>
+                          </div>
+                          <div className="p-1.5 bg-blue-50/60 rounded-lg border border-blue-100">
+                            <span className="text-[10px] text-blue-600 block">รวมงาน</span>
+                            <span className="font-bold text-blue-700">{totalStaffJobs} งาน</span>
+                          </div>
+                        </div>
+
+                        <div className="text-[11px] text-slate-500 text-right">
+                          ปริมาณสูบสะสม: <strong className="text-slate-700">{volumeSum.toLocaleString()} ลิตร</strong>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table with Strict Right Alignment for Financial Numbers */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead className="bg-slate-50/90 text-slate-500 font-semibold text-xs uppercase tracking-wider border-b border-slate-200/80">
+                      <tr>
+                        <th className="py-3 px-4 whitespace-nowrap">ชื่อพนักงาน</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">คนขับหลัก</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">ผู้ช่วย</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">รวมงาน</th>
+                        <th className="py-3 px-4 text-right whitespace-nowrap">ปริมาณสูบรวม</th>
+                        <th className="py-3 px-4 text-right whitespace-nowrap">💵 เงินสดที่ต้องส่งคืน</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {drivers.map((driver) => {
+                        let primaryJobs = 0;
+                        let assistantJobs = 0;
+                        let volumeSum = 0;
+                        let unreconciledCash = 0;
+
+                        jobs.forEach((j) => {
+                          if (j.userId === driver.id) {
+                            primaryJobs++;
+                            volumeSum += j.volumePumped || 0;
+                            if (j.paymentMethod === "CASH" && !j.isReconciled) {
+                              unreconciledCash += Number(j.price || 0);
+                            }
+                          } else if (j.driver2Id === driver.id) {
+                            assistantJobs++;
+                            volumeSum += j.volumePumped || 0;
+                          }
+                        });
+
+                        const totalStaffJobs = primaryJobs + assistantJobs;
+
+                        return (
+                          <tr key={driver.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                              👷 {driver.name}
+                            </td>
+                            <td className="py-3.5 px-4 text-center text-slate-600 whitespace-nowrap font-mono">
+                              {primaryJobs} เที่ยว
+                            </td>
+                            <td className="py-3.5 px-4 text-center text-slate-600 whitespace-nowrap font-mono">
+                              {assistantJobs} เที่ยว
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-blue-600 whitespace-nowrap font-mono">
+                              {totalStaffJobs} งาน
+                            </td>
+                            <td className="py-3.5 px-4 text-right text-slate-600 whitespace-nowrap font-mono">
+                              {volumeSum.toLocaleString()} ลิตร
+                            </td>
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono">
+                              {unreconciledCash > 0 ? (
+                                <span className="font-bold text-rose-600">
+                                  ฿{unreconciledCash.toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
+                                  ✓ ครบแล้ว (฿0)
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ========================================================= */}
+              {/* 🌟 7. ตารางสรุปการเข้างานประจำเดือน MATRIX (WITH HOVER TOOLTIPS) */}
+              {/* ========================================================= */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                      <span>สรุปการเข้างานประจำเดือน ({MONTH_NAMES_TH[currentMonthIdx]} {currentYear + 543})</span>
+                    </h2>
+                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                      <span>สัญลักษณ์:</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                        <span className="w-4 h-4 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">✓</span> มาทำงาน
+                      </span>
+                      <span className="text-slate-400">
+                        <span className="text-slate-300 font-bold">-</span> ไม่มีงานวิ่ง
+                      </span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/admin/attendance"
+                    className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors self-end sm:self-auto shadow-2xs"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    <span>ดูประวัติลงเวลาละเอียด</span>
+                  </Link>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-center text-xs">
+                    <thead className="bg-slate-50/90 text-slate-500 font-semibold border-b border-slate-200/80">
+                      <tr>
+                        <th className="sticky left-0 bg-slate-50/95 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.03)] py-3 px-3.5 text-left whitespace-nowrap min-w-[130px] text-xs uppercase tracking-wider font-semibold">
+                          พนักงาน
+                        </th>
+                        {attendanceDays.map((d) => (
+                          <th
+                            key={d}
+                            className={`py-3 px-1 min-w-[32px] sm:min-w-[36px] font-semibold ${
+                              d === currentDayNum ? "text-blue-600 bg-blue-50/50" : "text-slate-600"
+                            }`}
+                          >
+                            {d}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {drivers.map((d) => (
+                        <tr key={d.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.03)] py-3 px-3.5 text-left font-bold text-slate-900 whitespace-nowrap text-xs">
+                            👷 {d.name}
+                          </td>
+                          {attendanceDays.map((dayNum) => {
+                            const hasJobWorked = monthJobs.some((j) => {
+                              const jobDate = j.completedAt || j.createdAt;
+                              const { year: jYear, month: jMonth, day: jDay } = getThaiDateParts(jobDate);
+                              const isSameDay =
+                                jDay === dayNum &&
+                                jMonth === currentMonthNum &&
+                                jYear === currentYear;
+
+                              const isWorker = j.userId === d.id || j.driver2Id === d.id;
+                              return isSameDay && isWorker;
+                            });
+
+                            return (
+                              <td key={dayNum} className="py-2 px-1 text-center align-middle">
+                                {hasJobWorked ? (
+                                  <div className="relative group inline-flex items-center justify-center">
+                                    <span className="w-6 h-6 mx-auto rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                                      ✓
+                                    </span>
+                                    {/* Tooltip on hover */}
+                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-medium px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-30 shadow-md">
+                                      มาทำงาน ({dayNum} {MONTH_NAMES_TH[currentMonthIdx]})
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 text-slate-300 font-medium text-xs">
+                                    -
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ========================================================= */}
+              {/* 🌟 8. สรุปหมวดหมู่ค่าใช้จ่าย 5 หมวด */}
+              {/* ========================================================= */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-slate-600" />
+                    <span>สรุปหมวดหมู่ค่าใช้จ่าย</span>
+                  </h2>
+                  <span className="text-xs font-semibold text-slate-500">
+                    รวมทั้งสิ้น: <strong className="text-rose-600 font-mono">฿{totalExpense.toLocaleString()}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1 relative">
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center">
+                      <Fuel className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
+                      ⛽ ค่าน้ำมัน
+                    </span>
+                    <div className="text-base sm:text-xl font-bold text-slate-900 font-mono">
+                      ฿{catFuel.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1 relative">
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center">
+                      <Truck className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
+                      🚽 ค่าทิ้งสิ่งปฏิกูล
+                    </span>
+                    <div className="text-base sm:text-xl font-bold text-slate-900 font-mono">
+                      ฿{catDisposal.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1 relative">
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                      <Layers className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
+                      🔧 ซ่อมบำรุง
+                    </span>
+                    <div className="text-base sm:text-xl font-bold text-slate-900 font-mono">
+                      ฿{catMaintenance.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1 relative">
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                      <DollarSign className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
+                      💼 ค่าแรง
+                    </span>
+                    <div className="text-base sm:text-xl font-bold text-slate-900 font-mono">
+                      ฿{catSalary.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-1 relative">
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
+                      <Layers className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
+                      📦 อื่นๆ
+                    </span>
+                    <div className="text-base sm:text-xl font-bold text-slate-900 font-mono">
+                      ฿{catOther.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="bg-slate-50/70 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-1">
-              <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
-                🚽 ค่าทิ้งสิ่งปฏิกูล
-              </span>
-              <div className="text-base sm:text-xl font-bold text-slate-900 truncate">
-                ฿{catDisposal.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-slate-50/70 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-1">
-              <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
-                🔧 ซ่อมบำรุง
-              </span>
-              <div className="text-base sm:text-xl font-bold text-slate-900 truncate">
-                ฿{catMaintenance.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-slate-50/70 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-1">
-              <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
-                💼 ค่าแรง
-              </span>
-              <div className="text-base sm:text-xl font-bold text-slate-900 truncate">
-                ฿{catSalary.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="col-span-2 sm:col-span-1 bg-slate-50/70 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-1">
-              <span className="text-xs text-slate-600 font-semibold flex items-center gap-1.5">
-                📦 อื่นๆ
-              </span>
-              <div className="text-base sm:text-xl font-bold text-slate-900 truncate">
-                ฿{catOther.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
+          }
+        />
       </div>
-    }
-  />
-</div>
-</main>
+    </main>
   );
 }

@@ -23,6 +23,8 @@ import {
   LogOut,
   User,
   ShieldCheck,
+  Briefcase,
+  ClipboardClock,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -38,6 +40,7 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   isActive: boolean;
+  iconColor?: string;
   badge?: string;
   badgeColor?: string;
 }
@@ -86,7 +89,7 @@ export default function Sidebar({ user }: SidebarProps) {
     setMobileOpen(false);
   }, [pathname]);
 
-  if (!user || pathname === "/login") {
+  if (!user || pathname === "/login" || pathname === "/") {
     return null;
   }
 
@@ -101,18 +104,21 @@ export default function Sidebar({ user }: SidebarProps) {
           href: "/jobs/new",
           label: "ส่งงานทันที",
           icon: <Truck className="w-5 h-5 shrink-0" />,
+          iconColor: "text-blue-500",
           isActive: pathname === "/jobs/new",
         },
         {
           href: "/jobs",
           label: "รายการงาน",
           icon: <ClipboardList className="w-5 h-5 shrink-0" />,
+          iconColor: "text-sky-400",
           isActive: pathname === "/jobs" || (pathname.startsWith("/jobs/") && pathname !== "/jobs/new"),
         },
         {
           href: "/expenses",
           label: "บันทึกรายจ่าย",
           icon: <Fuel className="w-5 h-5 shrink-0" />,
+          iconColor: "text-red-500",
           isActive: pathname.startsWith("/expenses"),
         },
       ],
@@ -125,25 +131,29 @@ export default function Sidebar({ user }: SidebarProps) {
               {
                 href: "/admin/dashboard",
                 label: "แดชบอร์ดสรุปผล",
+                iconColor: "text-indigo-400",
                 icon: <LayoutDashboard className="w-5 h-5 shrink-0" />,
                 isActive: pathname === "/admin/dashboard",
               },
               {
                 href: "/admin/jobs/assign",
                 label: "จ่ายงาน",
-                icon: <CalendarCheck className="w-5 h-5 shrink-0" />,
+                icon: <Briefcase className="w-5 h-5 shrink-0" />,
+                iconColor: "text-emerald-600",
                 isActive: pathname.startsWith("/admin/jobs/assign"),
               },
               {
                 href: "/admin/customers",
                 label: "สมุดรายชื่อลูกค้า",
                 icon: <Users className="w-5 h-5 shrink-0" />,
+                iconColor: "text-purple-500",
                 isActive: pathname.startsWith("/admin/customers"),
               },
               {
                 href: "/admin/reports",
                 label: "รายงาน & สถิติ",
                 icon: <BarChart3 className="w-5 h-5 shrink-0" />,
+                iconColor: "text-violet-400",
                 isActive: pathname.startsWith("/admin/reports"),
               },
             ],
@@ -153,20 +163,23 @@ export default function Sidebar({ user }: SidebarProps) {
             items: [
               {
                 href: "/admin/vehicles",
-                label: "จัดการรถดูดส้วม",
+                label: "จัดการรถสูบส้วม",
                 icon: <Truck className="w-5 h-5 shrink-0" />,
+                iconColor: "text-orange-400",
                 isActive: pathname.startsWith("/admin/vehicles"),
               },
               {
                 href: "/admin/staff",
                 label: "จัดการพนักงาน",
                 icon: <UserCog className="w-5 h-5 shrink-0" />,
+                iconColor: "text-blue-400",
                 isActive: pathname.startsWith("/admin/staff"),
               },
               {
                 href: "/admin/attendance",
                 label: "ตรวจเวลาทำงาน",
-                icon: <ClipboardList className="w-5 h-5 shrink-0" />,
+                icon: <ClipboardClock className="w-5 h-5 shrink-0" />,
+                iconColor: "text-yellow-400",
                 isActive: pathname.startsWith("/admin/attendance"),
               },
             ],
@@ -278,7 +291,7 @@ export default function Sidebar({ user }: SidebarProps) {
                   >
                     <span
                       className={`transition-transform group-hover:scale-110 ${
-                        item.isActive ? "text-blue-600" : "text-slate-400 group-hover:text-white"
+                        item.isActive ? item.iconColor :  item.iconColor || "text-slate-400 group-hover:text-white"
                       }`}
                     >
                       {item.icon}
