@@ -8,6 +8,7 @@ import { getActiveVehicles } from "@/lib/vehicle-service";
 import { getStaffAndDrivers } from "@/lib/user-service";
 import { formatDateTh, formatTimeTh } from "@/lib/formatters";
 import LeaveActionButtons from "./LeaveActionButtons";
+import AttendanceFilterBar from "./AttendanceFilterBar";
 
 export const revalidate = 0;
 
@@ -258,143 +259,17 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
         </div>
 
         {/* แถบตัวกรอง */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <form method="GET" className="space-y-4 text-xs">
-            {/* แถวที่ 1: คันรถ / พนักงาน / หมวดหมู่ / เรียงลำดับ (2 คอลัมน์บนมือถือ, 4 คอลัมน์บนจอใหญ่) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-              {/* คันรถ */}
-              <div className="space-y-1">
-                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">คันรถ</label>
-                <select
-                  name="vehicleId"
-                  defaultValue={selectedVehicleId}
-                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                >
-                  <option value="">ทั้งหมด</option>
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.plateNumber}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* พนักงาน */}
-              <div className="space-y-1">
-                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">พนักงาน</label>
-                <select
-                  name="userId"
-                  defaultValue={selectedUserId}
-                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                >
-                  <option value="">ทั้งหมด</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* หมวดหมู่ / ประเภท */}
-              <div className="space-y-1">
-                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">หมวดหมู่</label>
-                <select
-                  name="type"
-                  defaultValue={selectedType}
-                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                >
-                  <option value="ALL">ทั้งหมด</option>
-                  <option value="WORK">เข้างานปกติ</option>
-                  <option value="LEAVE">ลากิจ</option>
-                  <option value="SICK">ลาป่วย</option>
-                </select>
-              </div>
-
-              {/* เรียงลำดับ */}
-              <div className="space-y-1">
-                <label className="text-slate-500 font-medium text-[11px] sm:text-xs">เรียงลำดับ</label>
-                <select
-                  name="sort"
-                  defaultValue={selectedSort}
-                  className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-slate-800 outline-none focus:bg-white focus:border-blue-500"
-                >
-                  <option value="desc">ล่าสุด → เก่าสุด</option>
-                  <option value="asc">เก่าสุด → ล่าสุด</option>
-                </select>
-              </div>
-            </div>
-
-            {/* แถวที่ 2: ปุ่มลัดช่วงเวลา + ระบุวันที่ + ปุ่มล้าง/ค้นหา */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500 font-medium whitespace-nowrap text-xs">ช่วงเวลา:</span>
-                  <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar w-full sm:w-auto">
-                    {[
-                      { id: "today", label: "วันนี้" },
-                      { id: "this_month", label: "เดือนนี้" },
-                      { id: "this_year", label: "ปีนี้" },
-                      { id: "all", label: "ทั้งหมด" },
-                    ].map((item) => (
-                      <Link
-                        key={item.id}
-                        href={`/admin/attendance?period=${item.id}${
-                          selectedVehicleId ? `&vehicleId=${selectedVehicleId}` : ""
-                        }${selectedUserId ? `&userId=${selectedUserId}` : ""}${
-                          selectedType !== "ALL" ? `&type=${selectedType}` : ""
-                        }${selectedSort !== "desc" ? `&sort=${selectedSort}` : ""}`}
-                        className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold transition whitespace-nowrap text-center flex-1 sm:flex-initial ${
-                          period === item.id && !startDateParam && !endDateParam
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-600 hover:text-slate-900"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                <input type="hidden" name="period" value={period} />
-
-                {/* หรือระบุวันที่ */}
-                <div className="flex items-center gap-1.5 text-slate-400 flex-wrap">
-                  <span className="text-xs whitespace-nowrap">หรือวันที่:</span>
-                  <input
-                    type="date"
-                    name="startDate"
-                    defaultValue={startDateParam}
-                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white text-xs flex-1 sm:flex-initial"
-                  />
-                  <span>-</span>
-                  <input
-                    type="date"
-                    name="endDate"
-                    defaultValue={endDateParam}
-                    className="p-1.5 px-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 outline-none focus:bg-white text-xs flex-1 sm:flex-initial"
-                  />
-                </div>
-              </div>
-
-              {/* ปุ่มล้างตัวกรอง & ค้นหา */}
-              <div className="grid grid-cols-2 sm:flex items-center gap-2 pt-1 lg:pt-0">
-                <Link
-                  href="/admin/attendance"
-                  className="px-4 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition text-center flex items-center justify-center"
-                >
-                  ล้างตัวกรอง
-                </Link>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 sm:py-2 bg-[#0c1322] hover:bg-black text-white font-semibold rounded-xl transition shadow-sm cursor-pointer text-center flex items-center justify-center"
-                >
-                  ค้นหา
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
+        <AttendanceFilterBar
+          vehicles={vehicles}
+          users={users}
+          period={period}
+          selectedVehicleId={selectedVehicleId}
+          selectedUserId={selectedUserId}
+          selectedType={selectedType}
+          selectedSort={selectedSort}
+          startDateParam={startDateParam}
+          endDateParam={endDateParam}
+        />
 
         {/* มุมมองมือถือ: การ์ดบันทึกเวลา (< md) */}
         <div className="block md:hidden space-y-3">

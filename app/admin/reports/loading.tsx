@@ -1,9 +1,9 @@
-import HamsterLoader from "@/components/HamsterLoader";
+import TruckPageLoader from "@/components/animations/TruckPageLoader";
 
 export default function Loading() {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <HamsterLoader text="กำลังเตรียมข้อมูลรายงาน..." />
+      <TruckPageLoader text="กำลังเตรียมข้อมูลรายงาน..." />
     </main>
   );
 }

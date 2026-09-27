@@ -1,0 +1,135 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem 2.25rem;
+  width: 100%;
+  max-width: 22rem;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  animation: pageLoaderFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.truckWrapper {
+  position: relative;
+  animation: truckBounce 0.6s ease-in-out infinite alternate;
+  margin-bottom: 0.35rem;
+}
+
+.smokePuff1,
+.smokePuff2 {
+  position: absolute;
+  border-radius: 50%;
+  background: #94a3b8;
+  pointer-events: none;
+}
+
+.smokePuff1 {
+  bottom: 18px;
+  left: -6px;
+  width: 8px;
+  height: 8px;
+  animation: smokePuff 1s ease-out infinite;
+}
+
+.smokePuff2 {
+  bottom: 22px;
+  left: -12px;
+  width: 12px;
+  height: 12px;
+  animation: smokePuff 1s ease-out 0.4s infinite;
+}
+
+.road {
+  position: relative;
+  width: 140px;
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.roadLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    #2563eb 0px,
+    #2563eb 12px,
+    transparent 12px,
+    transparent 24px
+  );
+  animation: roadMove 0.6s linear infinite;
+}
+
+.wheel {
+  transform-origin: center;
+  animation: wheelSpin 0.5s linear infinite;
+}
+
+@keyframes truckBounce {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes wheelSpin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes roadMove {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes smokePuff {
+  0% {
+    transform: scale(0.3) translate(0, 0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.5) translate(-16px, -12px);
+    opacity: 0;
+  }
+}
+
+@keyframes pageLoaderFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
